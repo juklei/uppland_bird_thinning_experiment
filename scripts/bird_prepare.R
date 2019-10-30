@@ -2,7 +2,7 @@
 ## script.
 ##
 ## First edit: 20190628
-## Last edit: 20191023
+## Last edit: 20191030
 ##
 ## Author: Julian Klein
 
@@ -17,7 +17,8 @@ library(reshape)
 
 dir("data")
 
-occ <- read.csv("data/occ_double_2017to2019.csv")
+OCC <- read.csv("data/occ_double_2017to2019.csv")
+OCC2 <- read.csv("data/occ_2016to2019.csv")
 ldm <- read.csv("data/long_distance_migrants.csv")
 
 head(occ); head(ldm)
@@ -27,16 +28,11 @@ head(occ); head(ldm)
 ##    the species depending on wether it is long distance migrant or not.
 
 ## Exclude predators, birds with large hr and passers from obs:
-occ <- occ[!occ$species %in% c("bergk",
-                               "duvhk",
-                               "ormvk",
-                               "ekore",
-                               "gravg",
-                               "grona", 
-                               "korp",
-                               "mard",
-                               "mindb",
-                               "spark"), ]
+occ <- OCC[!OCC$species %in% c("bergk", "duvhk", "ormvk", "ekore", 
+                               "gravg", "grona", "korp", "mard", 
+                               "mindb", "spark", "tjadr", "morka", 
+                               "spila", "gok", "grong", "jarpe",
+                               "kraka"), ]
 
 ## Chose relevant columns for this analysis:
 occ <- droplevels(occ[, c("observer",
@@ -127,5 +123,74 @@ b_occ$observer <- ifelse(b_occ$block %in% c("ravsta",
 
 dir.create("clean")
 write.csv(b_occ, "clean/bpo_double.csv")
+
+## 4. Rearrange bird observation data to fit the model presented in the --------
+##    AHM book on p. 690. 
+
+## Exclude predators, birds with large hr and passers from obs:
+occ <- droplevels(OCC[!OCC$species %in% c("bergk", "duvhk", "ormvk", "ekore", 
+                                          "gravg", "grona", "korp", "mard", 
+                                          "mindb", "spark", "tjadr", "morka", 
+                                          "spila", "gok", "grong", "jarpe",
+                                          "kraka"),])
+
+## Make data set so we have all possible combinations of all visits
+## and all species seen during the whole survey.
+b_occ <- expand.grid.df(unique(occ[, c("block", 
+                                       "plot",
+                                       "visit",
+                                       "sampling_period",
+                                       "obs_year",
+                                       "observer")]), 
+                        as.data.frame(unique(occ$species)))
+colnames(b_occ)[length(b_occ)] <- "species"
+
+## Merge with occ data set to aquire all information of observations
+## If a speces was not observed during a visit make obs 0:
+
+## Add obs = 1 to occ:
+occ$observed <- 1
+
+## Merge all b_occ with matching b_occ:
+b_occ <- merge(b_occ, occ, all.x = TRUE, by = colnames(b_occ))
+
+## NA in observed are actually non-observations, so they will become 0:
+b_occ$observed[is.na(b_occ$observed)] <- 0
+
+## Add arrival date:
+b_occ <- as.data.table(b_occ)
+b_occ$dp_march <- as.numeric(b_occ$dp_march) ## min() had troubles handling integers
+b_occ[, "min_dpm" := ifelse(all(is.na(dp_march)), 99, min(dp_march, na.rm = T)), 
+      by = c("species", "obs_year")] ## 99 for never observed in a year
+
+## Fill NAs in dp_march and min_post_sunrise:
+
+## Create a function that does that:
+F1 <- function(x){
+  x$dp_march[is.na(x$dp_march)] <- unique(x$dp_march[!is.na(x$dp_march)])
+  x$min_post_sunrise[is.na(x$min_post_sunrise)] <- 
+    mean(x$min_post_sunrise[!is.na(x$min_post_sunrise)])
+  return(x)
+}
+
+## Apply it to all combinatins of plot*obs_year*visit*sampling period:
+b_occ <- b_occ[, F1(.SD), by = c("plot", "visit", "sampling_period", "obs_year")]
+
+## Remove ldm non-observations from the first & second visit that have a 
+## dp_march smaller than the arrival date (e.g. bird has not arrived yet):
+  
+b_occ <- b_occ[!(b_occ$species %in% ldm$species & 
+                   b_occ$visit %in% c("first", "second") & 
+                   b_occ$dp_march < b_occ$min_dpm), ]
+
+## Remove no_obs from species and select columns to export:
+b_occ <- b_occ[b_occ$species != "no_obs", c("obs_year", "block", "observer", 
+                                            "plot", "species", "observed",
+                                            "dp_march", "min_post_sunrise")]
+
+## Export:
+
+dir.create("clean")
+write.csv(b_occ, "clean/bpo_double_bernoulli.csv", row.names = FALSE)
 
 ## -------------------------------END-------------------------------------------
