@@ -185,8 +185,11 @@ b_occ <- b_occ[!(b_occ$species %in% ldm$species &
 
 ## Remove no_obs from species and select columns to export:
 b_occ <- b_occ[b_occ$species != "no_obs", c("obs_year", "block", "observer", 
-                                            "plot", "species", "observed",
+                                            "plot", "species", "observed", 
                                             "dp_march", "min_post_sunrise")]
+
+## Add a visit indicator for each visit per plot*obs_year*species
+b_occ <- b_occ[, "visit" := 1:nrow(.SD), by = c("plot", "obs_year", "species")]
 
 ## Export:
 
