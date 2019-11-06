@@ -2,7 +2,7 @@
 ## to the thinning experiment
 
 ## First edit: 20191023
-## Last edit:  20191028
+## Last edit:  20191106
 
 ## Author: Julian Klein
 
@@ -17,10 +17,9 @@ library(reshape)
 
 dir("data")
 forest <- read.csv("data/forest_data_uppland_plot.csv")
-
 head(forest)
 
-## 3. Reduce data set to needed variables, claculate percentages, 
+## 3. Reduce data set to needed variables, claculate percentages, --------------
 ##    and calculate differences due to treatments.
 
 ## Exclude unneeded varables:
@@ -50,9 +49,38 @@ diff$experiment <- "difference"
 ## Join before-after with differences:
 f_all <- rbind(f_red,diff)
 
-## 4. Export:
+## 4. Adjust the raw experiment data to data by year for the JAGS model:
+
+## Replace NAs in the combination after*control with before*control
+F1 <- function(x){
+  x[x$treatment == "C" & x$experiment == "after", c(3:13, 17:20)] <- 
+    x[x$treatment == "C" & x$experiment == "before", c(3:13, 17:20)]
+  return(x)
+}
+f_raw <- f_red[, F1(.SD), by = "plot"]
+
+## Fill all true controls:
+T1 <- expand.grid.df(unique(f_raw[is.na(f_raw$effect_year), 
+                                  c("block", "plot", "effect_year")]),
+                     data.frame("year" = c(2017, 2018, 2019)))
+T1 <- merge(T1, f_raw[f_raw$experiment == "before"],
+            by = c("block", "plot", "effect_year"))
+
+## Fill treatments:
+T2 <- expand.grid.df(unique(f_raw[!is.na(f_raw$effect_year), 
+                                  c("block", "plot", "effect_year")]),
+                     data.frame("year" = c(2017, 2018, 2019)))
+T3 <- merge(T2[T2$effect_year > T2$year,], f_raw[f_raw$experiment == "before"],
+            by = c("block", "plot", "effect_year"))
+T4 <- merge(T2[T2$effect_year <= T2$year,], f_raw[f_raw$experiment == "after"],
+            by = c("block", "plot", "effect_year"))
+
+f_raw <- rbind(T1,T3,T4)
+
+## 5. Export:
 
 dir.create("clean")
 write.csv(f_all, "clean/forest_experiment_data.csv", row.names = F)
+write.csv(f_raw, "clean/forest_experiment_data_JAGS.csv", row.names = F)
 
 ## -----------------------------------END---------------------------------------
