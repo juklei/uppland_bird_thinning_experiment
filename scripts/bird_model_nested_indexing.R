@@ -12,8 +12,9 @@ rm(list = ls())
 library(boot)
 library(rjags)
 library(coda)
-library(magrittr)
 library(reshape2)
+library(data.table)
+library(dplyr)
 
 ## 2. Define or source functions used in this script ---------------------------
 
@@ -39,7 +40,7 @@ head(bpo)
 str(bpo)
 head(forest)
 
-## 4. The model ----------------------------------------------------------------
+## 4. Construct the data set ---------------------------------------------------
 
 # ## Create table with nr.obswrved/non-observed per species:
 # T1 <- table(bpo[, c("species", "observed")])
@@ -48,58 +49,73 @@ head(forest)
 # red_names <- names(which(T1[, "1"] > 80 & T1[, "0"] > 80))
 # bpo <- bpo[bpo$species %in% red_names, ]
 
+## Reduce to two species for trials:
 bpo <- droplevels(bpo[bpo$species %in% c("bofik", "trapa"), ])
 
-## Scale all continuous values:
-bpo$dpm_scaled <- scale(bpo$dp_march)
-bpo$mps_scaled <- scale(bpo$min_post_sunrise)
-forest$sdbh_scaled <- scale(forest$average_dbh_all_alive)
+## Merge bpo, ldm, and forest to one data frame:
+bpof <- merge(bpo, 
+              forest, 
+              by.x = c("plot", "block", "obs_year"),
+              by.y = c("plot", "block", "year"))
+bpof$ldm <- ifelse(bpof$species %in% ldm$species, 2, 1) 
 
-## Binarise categorical variables:
-forest$thinned <- ifelse(forest$treatment %in% c("T", "URT") & 
-                           forest$experiment == "after", 1, 0)
-forest$control <- ifelse(forest$treatment == "C" & 
-                           forest$experiment == "after", 1, 0)
+## Add binary identifier for treatments:
+bpof$thinned <- ifelse(bpof$treatment %in% c("T", "URT") & 
+                         bpof$experiment == "after", 1, 0)
+bpof$control <- ifelse(bpof$treatment == "C" & bpof$experiment == "after", 1, 0)
 
-## Create data arrays:
+## Add hierarchical level identifiers (HLI):
 
-seen <- acast(bpo[, c("plot", "obs_year", "species", "visit", "observed")],
-              species ~ obs_year ~ plot ~ visit)
+bpof <- as.data.table(bpof)
 
-dpm <- acast(bpo[, c("plot", "obs_year", "species", "visit", "dpm_scaled")],
-             species ~ obs_year ~ plot ~ visit)
-dpm[is.na(dpm)] <- 0 ## NA in covariates become dummy mean (0, beacuse scaled) 
+## HLI for plot*year*species:
+bpof[ , "pys" := .GRP, by = c("plot", "obs_year", "species")]
 
-mps <- acast(bpo[, c("plot", "obs_year", "species", "visit", "mps_scaled")],
-             species ~ obs_year ~ plot ~ visit)
-mps[is.na(mps)] <- 0 ## NA in covariates become dummy mean (0, beacuse scaled) 
+## Create plot*year*species unique data set for H2:
+dH2 <- unique(bpof[, c("pys", "species", "plot", "obs_year", "thinned", 
+                       "control", "average_dbh_all_alive")
+                  ])
 
-ldm <- ifelse(unlist(dimnames(seen)[1]) %in% ldm$species, 2, 1)
-  
-sdbh <- acast(forest[, c("plot", "year", "sdbh_scaled")], year ~ plot)
+## HLI for year*species:
+dH2[ , "ys" := .GRP, by = c("obs_year", "species")]
 
-thinned <- acast(forest[, c("plot", "year", "thinned")], year ~ plot)
+## HLI for plot*species:
+dH2[ , "ps" := .GRP, by = c("plot", "species")]
 
-control <- acast(forest[, c("plot", "year", "control")], year ~ plot)
+## Create a plot*species unique data set for H3:
+dH3p <- unique(dH2[, c("ps", "species")])
+
+## Create a year*species unique data set for H3:
+dH3y <- unique(dH2[, c("ys", "species")])
 
 ## Create model data set:
-data <- list(nspecies = dim(seen)[1],
-             nyears = dim(seen)[2],
-             nsites = dim(seen)[3],
-             nvisits = dim(seen)[4],
-             seen = seen,
-             dpm = dpm,
-             mps = mps,
-             ldm = ldm,
-             sdbh = sdbh,
-             thinned = thinned,
-             control = control) 
+data <- list(## Observational data:
+             nobs = nrow(bpof), 
+             pys = bpof$pys,
+             sH1 = as.numeric(bpof$species),
+             ldm = bpof$ldm,
+             observed = bpof$observed,
+             dpm = scale(bpof$dp_march)[, 1],
+             mps = scale(bpof$min_post_sunrise)[, 1],
+             ## Process model:
+             npys = max(dH2$pys), 
+             ys = dH2$ys,
+             ps = dH2$ps,
+             sH2 = as.numeric(dH2$species),
+             thinned = dH2$thinned,
+             control = dH2$control,
+             sdbh = scale(dH2$average_dbh_all_alive)[, 1],
+             ## Grouping effects:
+             nps = max(dH2$ps),
+             nys = max(dH2$ys),
+             sH3p = as.numeric(dH3p$species),
+             sH3y = as.numeric(dH3y$species),
+             ## Priors:
+             ns = max(as.numeric(bpof$species))) 
 
 str(data)
 
-inits <-  list(list(occ_true = array(1, dim = c(data$nspecies,
-                                                data$nyears, 
-                                                data$nsites)),
+inits <-  list(list(occ_true = rep(1, data$npys),
                     mu_a_pdet = 0.5,
                     sd_a_pdet = 0.5,
                     b_dpm = c(0, 0),
@@ -108,8 +124,8 @@ inits <-  list(list(occ_true = array(1, dim = c(data$nspecies,
                     b2_mps = 0,
                     mu_a_pocc = 0.5,
                     sd_a_pocc = 5,
-                    sd_year = rep(5, data$nspecies),
-                    sd_site = rep(5, data$nspecies),
+                    sd_year = rep(5, data$ns),
+                    sd_site = rep(5, data$ns),
                     mu_b_thinned = 0.5,
                     sd_b_thinned = 5,
                     mu_b_control = 0.5,
@@ -121,7 +137,7 @@ inits <-  list(list(occ_true = array(1, dim = c(data$nspecies,
                     mu_b_sdbh_c = 0.5,
                     sd_b_sdbh_c = 5))
 
-model <- "scripts/JAGS/bird_JAGS_bpo.R"
+model <- "scripts/JAGS/bird_JAGS_bpo_ni.R"
 
 start <- Sys.time()
 
@@ -159,16 +175,16 @@ end - start
 
 ## Export parameter estimates:
 capture.output(summary(zc), HPDinterval(zc, prob = 0.95)) %>% 
-  write(., "results/parameters_nl.txt")
+  write(., "results/parameters_ni.txt")
 
 ## 5. Validate the model and export validation data and figures ----------------
 
-pdf("figures/plot_zc_nl.pdf")
+pdf("figures/plot_zc_ni.pdf")
 plot(zc)
 dev.off()
 
 capture.output(raftery.diag(zc), heidel.diag(zc)) %>% 
-  write(., "results/diagnostics_nl.txt")
+  write(., "results/diagnostics_ni.txt")
 
 # ## Produce validation metrics: 
 # zj_val <- jags.samples(jm, 
