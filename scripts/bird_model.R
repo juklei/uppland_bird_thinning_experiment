@@ -48,7 +48,10 @@ T1 <- table(bpo[, c("species", "observed")])
 red_names <- names(which(T1[, "1"] > 50 & T1[, "0"] > 50))
 bpo <- droplevels(bpo[bpo$species %in% red_names, ])
 
-# bpo <- droplevels(bpo[bpo$species %in% c("tofss", "trapa"), ])
+bpo <- droplevels(bpo[bpo$species %in% c("tofss", "trapa"), ])
+
+## Join "T" and "URT" to "T":
+levels(forest$treatment)[4] <- "T"
 
 ## Add ldm:
 bpo$ldm <- ifelse(bpo$species %in% ldm$species, 2, 1) 
@@ -62,11 +65,16 @@ forest$nr_skarm_scaled <- scale(forest$nr_skarm)
 forest$nr_sd_scaled <- scale(forest$nr_staende_dodved)
 forest$lm_scaled <- scale(forest$laser_mean)
 
-## Create experiment*treatment matrix:
+## Make numeric levels for the treatment*experiment matrix:
+forest$treat_num <- as.numeric(forest$treatment)
+forest$exp_num <- ifelse(forest$experiment == "before", 1, 2)
 
+## Create data arrays:
 
-## Create continuous data arrays:
-  
+treat <- acast(unique(forest[, c("plot", "treat_num")]), . ~ plot)[1, ]
+
+exp <- acast(forest[, c("plot", "year", "exp_num")], year ~ plot)
+
 sdbh <- acast(forest[, c("plot", "year", "sdbh_scaled")], year ~ plot)
 
 dec <- acast(forest[, c("plot", "year", "nr_lov_scaled")], year ~ plot)
@@ -88,13 +96,12 @@ data <- list(nobs = nrow(bpo),
              dpm = bpo$dpm_scaled,
              mps = bpo$mps_scaled,
              ldm = bpo$ldm,
+             treat = treat,
+             exp = exp,
              sdbh = sdbh,
              dec = dec,
              umbr = umbr,
-             lm = lm,
-             tc = tc,
-             thinned = thinned,
-             control = control) 
+             lm = lm) 
 
 str(data)
 
@@ -109,32 +116,18 @@ inits <-  list(list(occ_true = array(1, dim = c(data$nspecies,
                     b2_dpm = c(0, 0),
                     b_mps = 0,
                     b2_mps = 0,
-                    mu_a_pocc = 0.5, sd_a_pocc = 5,
+                    mu_a_pocc = matrix(0.5, max(data$treat), max(data$exp)),
+                    sd_a_pocc = matrix(5, max(data$treat), max(data$exp)),
                     u_sd_year = 5, #rep(5, data$nspecies),
                     u_sd_site = 5, #rep(5, data$nspecies),
                     mu_b_pocc_2018 = 0.5, sd_b_pocc_2018 = 5,
                     mu_b_pocc_2019 = 0.5, sd_b_pocc_2019 = 5,
-                    mu_b_tc = 0.5, sd_b_tc = 5,
-                    mu_b_thinned = 0.5, sd_b_thinned = 5,
-                    mu_b_control = 0.5, sd_b_control = 5,
                     mu_b_sdbh = 0.5, sd_b_sdbh = 5, 
-                    mu_b_sdbh_tc = 0.5, sd_b_sdbh_tc = 5, 
-                    mu_b_sdbh_t = 0.5, sd_b_sdbh_t = 5,
-                    mu_b_sdbh_c = 0.5, sd_b_sdbh_c = 5,
                     mu_b_dec = 0.5, sd_b_dec = 5,
-                    mu_b_dec_tc = 0.5, sd_b_dec_tc = 5,
-                    mu_b_dec_t = 0.5, sd_b_dec_t = 5,
-                    mu_b_dec_c = 0.5, sd_b_dec_c = 5,
                     mu_b_umbr = 0.5, sd_b_umbr = 5,
-                    mu_b_umbr_tc = 0.5, sd_b_umbr_tc = 5,
-                    mu_b_umbr_t = 0.5, sd_b_umbr_t = 5,
-                    mu_b_umbr_c = 0.5, sd_b_umbr_c = 5,
-                    mu_b_lm = 0.5, sd_b_lm = 5, 
-                    mu_b_lm_tc = 0.5, sd_b_lm_tc = 5,
-                    mu_b_lm_t = 0.5, sd_b_lm_t = 5,
-                    mu_b_lm_c = 0.5, sd_b_lm_c = 5))
+                    mu_b_lm = 0.5, sd_b_lm = 5))
 
-model <- "scripts/JAGS/bird_JAGS_bpo_mixed.R"
+model <- "scripts/JAGS/bird_JAGS_bpo.R"
 
 start <- Sys.time()
 
@@ -144,7 +137,7 @@ jm <- jags.model(model,
                  inits = inits,
                  n.chains = 1) 
 
-burn.in <-  5000
+burn.in <-  1000
 
 update(jm, n.iter = burn.in) 
 
@@ -161,25 +154,10 @@ zc1 <- coda.samples(jm,
                                        "u_sd_year", "u_sd_site",
                                        "mu_b_pocc_2018", "sd_b_pocc_2018", 
                                        "mu_b_pocc_2019", "sd_b_pocc_2019",
-                                       "mu_b_tc", "sd_b_tc",
-                                       "mu_b_thinned", "sd_b_thinned",
-                                       "mu_b_control", "sd_b_control",
                                        "mu_b_sdbh", "sd_b_sdbh",
-                                       "mu_b_sdbh_tc", "sd_b_sdbh_tc",
-                                       "mu_b_sdbh_t", "sd_b_sdbh_t", 
-                                       "mu_b_sdbh_c", "sd_b_sdbh_c",
                                        "mu_b_dec", "sd_b_dec", 
-                                       "mu_b_dec_tc", "sd_b_dec_tc", 
-                                       "mu_b_dec_t", "sd_b_dec_t", 
-                                       "mu_b_dec_c", "sd_b_dec_c",
                                        "mu_b_umbr", "sd_b_umbr", 
-                                       "mu_b_umbr_tc", "sd_b_umbr_tc",
-                                       "mu_b_umbr_t", "sd_b_umbr_t", 
-                                       "mu_b_umbr_c", "sd_b_umbr_c",
-                                       "mu_b_lm", "sd_b_lm", 
-                                       "mu_b_lm_tc", "sd_b_lm_tc",
-                                       "mu_b_lm_t", "sd_b_lm_t", 
-                                       "mu_b_lm_c", "sd_b_lm_c"),
+                                       "mu_b_lm", "sd_b_lm"),
                     n.iter = samples, 
                     thin = n.thin)
 
@@ -188,16 +166,16 @@ end - start
 
 ## Export parameter estimates:
 capture.output(summary(zc1), HPDinterval(zc1, prob = 0.95)) %>% 
-  write(., "results/parameters_mixed_1part.txt")
+  write(., "results/parameters_1part.txt")
 
 ## 5. Validate the model and export validation data and figures ----------------
 
-pdf("figures/plot_zc_mixed_1part.pdf")
+pdf("figures/plot_zc_1part.pdf")
 plot(zc1)
 dev.off()
 
 capture.output(raftery.diag(zc1), heidel.diag(zc1)) %>% 
-  write(., "results/diagnostics_mixed_1part.txt")
+  write(., "results/diagnostics_1part.txt")
 
 # ## Produce validation metrics: 
 # zj_val <- jags.samples(jm, 
