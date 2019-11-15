@@ -221,8 +221,13 @@ capture.output(raftery.diag(zc1), heidel.diag(zc1)) %>%
 # p <- summary(zj_val$p_fit, mean)
 # text(x = 850, y = 700, paste0("P=", round(as.numeric(p[1]), 4)), cex = 1.5)
 
-## 6. Export for graphing ------------------------------------------------------
+## 6. Export -------------------------------------------------------------------
 
-##...
+zj_val <- jags.samples(jm,
+                       variable.names = c("CI_div_C", "CI_ctr_C", "BACI_C", 
+                                          "CI_div_T", "CI_ctr_T", "BACI_T",
+                                          "CI_div_URT", "CI_ctr_URT", "BACI_URT"),
+                       n.iter = samples,
+                       thin = n.thin)
 
 ## -------------------------------END-------------------------------------------
