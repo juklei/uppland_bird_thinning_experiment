@@ -48,7 +48,7 @@ T1 <- table(bpo[, c("species", "observed")])
 red_names <- names(which(T1[, "1"] > 50 & T1[, "0"] > 50))
 bpo <- droplevels(bpo[bpo$species %in% red_names, ])
 
-bpo <- droplevels(bpo[bpo$species %in% c("tofss", "trapa"), ])
+# bpo <- droplevels(bpo[bpo$species %in% c("tofss", "trapa"), ])
 
 ## Add ldm:
 bpo$ldm <- ifelse(bpo$species %in% ldm$species, 2, 1) 
@@ -57,16 +57,30 @@ bpo$ldm <- ifelse(bpo$species %in% ldm$species, 2, 1)
 bpo$dpm_scaled <- scale(bpo$dp_march)
 bpo$mps_scaled <- scale(bpo$min_post_sunrise)
 forest$sdbh_scaled <- scale(forest$average_dbh_all_alive)
+forest$nr_lov_scaled <- scale(forest$nr_lov)
+forest$nr_skarm_scaled <- scale(forest$nr_skarm)
+forest$nr_sd_scaled <- scale(forest$nr_staende_dodved)
+forest$lm_scaled <- scale(forest$laser_mean)
 
 ## Binarise categorical variables:
+forest$tc <- ifelse(forest$experiment == "before" & 
+                    forest$year != 2017, 1, 0)
 forest$thinned <- ifelse(forest$treatment %in% c("T", "URT") & 
-                           forest$experiment == "after", 1, 0)
+                         forest$experiment == "after", 1, 0)
 forest$control <- ifelse(forest$treatment == "C" & 
                            forest$experiment == "after", 1, 0)
 
 ## Create data arrays:
   
 sdbh <- acast(forest[, c("plot", "year", "sdbh_scaled")], year ~ plot)
+
+dec <- acast(forest[, c("plot", "year", "nr_lov_scaled")], year ~ plot)
+
+umbr <- acast(forest[, c("plot", "year", "nr_skarm_scaled")], year ~ plot)
+
+lm <- acast(forest[, c("plot", "year", "lm_scaled")], year ~ plot)
+
+tc <- acast(forest[, c("plot", "year", "tc")], year ~ plot)
 
 thinned <- acast(forest[, c("plot", "year", "thinned")], year ~ plot)
 
@@ -86,6 +100,10 @@ data <- list(nobs = nrow(bpo),
              mps = bpo$mps_scaled,
              ldm = bpo$ldm,
              sdbh = sdbh,
+             dec = dec,
+             umbr = umbr,
+             lm = lm,
+             tc = tc,
              thinned = thinned,
              control = control) 
 
@@ -94,31 +112,38 @@ str(data)
 inits <-  list(list(occ_true = array(1, dim = c(data$nspecies,
                                                 data$nyears, 
                                                 data$nsites)),
-                    mu_a_pdet = 0.5,
-                    sd_a_pdet = 0.5,
-                    b_observer = 0.5,
+                    mu_a_pdet = 0.5, sd_a_pdet = 0.5,
+                    mu_b_pdet_2018 = 0.5, sd_b_pdet_2018 = 5,
+                    mu_b_pdet_2019 = 0.5, sd_b_pdet_2019 = 5,
+                    b_observer = 0,
                     b_dpm = c(0, 0),
                     b2_dpm = c(0, 0),
                     b_mps = 0,
                     b2_mps = 0,
-                    mu_a_pocc = 0.5,
-                    sd_a_pocc = 5,
+                    mu_a_pocc = 0.5, sd_a_pocc = 5,
                     u_sd_year = 5, #rep(5, data$nspecies),
                     u_sd_site = 5, #rep(5, data$nspecies),
-                    mu_b_2018 = 0.5,
-                    sd_b_2018 = 5,
-                    mu_b_2019 = 0.5,
-                    sd_b_2019 = 5,
-                    mu_b_thinned = 0.5,
-                    sd_b_thinned = 5,
-                    mu_b_control = 0.5,
-                    sd_b_control = 5,
-                    mu_b_sdbh = 0.5,
-                    sd_b_sdbh = 5, 
-                    mu_b_sdbh_t = 0.5,
-                    sd_b_sdbh_t = 5,
-                    mu_b_sdbh_c = 0.5,
-                    sd_b_sdbh_c = 5))
+                    mu_b_pocc_2018 = 0.5, sd_b_pocc_2018 = 5,
+                    mu_b_pocc_2019 = 0.5, sd_b_pocc_2019 = 5,
+                    mu_b_tc = 0.5, sd_b_tc = 5,
+                    mu_b_thinned = 0.5, sd_b_thinned = 5,
+                    mu_b_control = 0.5, sd_b_control = 5,
+                    mu_b_sdbh = 0.5, sd_b_sdbh = 5, 
+                    mu_b_sdbh_tc = 0.5, sd_b_sdbh_tc = 5, 
+                    mu_b_sdbh_t = 0.5, sd_b_sdbh_t = 5,
+                    mu_b_sdbh_c = 0.5, sd_b_sdbh_c = 5,
+                    mu_b_dec = 0.5, sd_b_dec = 5,
+                    mu_b_dec_tc = 0.5, sd_b_dec_tc = 5,
+                    mu_b_dec_t = 0.5, sd_b_dec_t = 5,
+                    mu_b_dec_c = 0.5, sd_b_dec_c = 5,
+                    mu_b_umbr = 0.5, sd_b_umbr = 5,
+                    mu_b_umbr_tc = 0.5, sd_b_umbr_tc = 5,
+                    mu_b_umbr_t = 0.5, sd_b_umbr_t = 5,
+                    mu_b_umbr_c = 0.5, sd_b_umbr_c = 5,
+                    mu_b_lm = 0.5, sd_b_lm = 5, 
+                    mu_b_lm_tc = 0.5, sd_b_lm_tc = 5,
+                    mu_b_lm_t = 0.5, sd_b_lm_t = 5,
+                    mu_b_lm_c = 0.5, sd_b_lm_c = 5))
 
 model <- "scripts/JAGS/bird_JAGS_bpo_mixed.R"
 
@@ -130,47 +155,60 @@ jm <- jags.model(model,
                  inits = inits,
                  n.chains = 1) 
 
-burn.in <-  1000
+burn.in <-  5000
 
 update(jm, n.iter = burn.in) 
 
 samples <- 1000
-n.thin <- 5
+n.thin <- 2
 
-zc <- coda.samples(jm,
-                   variable.names = #c("a_pdet", "b_dpm", "b2_dpm", "b_mps",
-                                      # "b2_mps", "a_pocc", "sd_year", "sd_site",
-                                      # "b_thinned", "b_control", "b_sdbh",
-                                      # "b_sdbh_t", "b_sdbh_c"),
-                                    c("mu_a_pdet", "sd_a_pdet", "b_observer",
-                                      "b_dpm", "b2_dpm", "b_mps", "b2_mps", 
-                                      "mu_a_pocc", "sd_a_pocc", 
-                                      "u_sd_year", "u_sd_site",
-                                      "mu_b_2018", "sd_b_2018", 
-                                      "mu_b_2019", "sd_b_2019",
-                                      "mu_b_thinned", "sd_b_thinned",
-                                      "mu_b_control", "sd_b_control",
-                                      "mu_b_sdbh", "sd_b_sdbh", 
-                                      "mu_b_sdbh_t", "sd_b_sdbh_t", 
-                                      "mu_b_sdbh_c", "sd_b_sdbh_c"),
-                   n.iter = samples, 
-                   thin = n.thin)
+zc1 <- coda.samples(jm,
+                    variable.names = c("mu_a_pdet", "sd_a_pdet", 
+                                       "mu_b_pdet_2018", "sd_b_pdet_2018", 
+                                       "mu_b_pdet_2019", "sd_b_pdet_2019",
+                                       "b_observer",
+                                       "b_dpm", "b2_dpm", "b_mps", "b2_mps", 
+                                       "mu_a_pocc", "sd_a_pocc", 
+                                       "u_sd_year", "u_sd_site",
+                                       "mu_b_pocc_2018", "sd_b_pocc_2018", 
+                                       "mu_b_pocc_2019", "sd_b_pocc_2019",
+                                       "mu_b_tc", "sd_b_tc",
+                                       "mu_b_thinned", "sd_b_thinned",
+                                       "mu_b_control", "sd_b_control",
+                                       "mu_b_sdbh", "sd_b_sdbh",
+                                       "mu_b_sdbh_tc", "sd_b_sdbh_tc",
+                                       "mu_b_sdbh_t", "sd_b_sdbh_t", 
+                                       "mu_b_sdbh_c", "sd_b_sdbh_c",
+                                       "mu_b_dec", "sd_b_dec", 
+                                       "mu_b_dec_tc", "sd_b_dec_tc", 
+                                       "mu_b_dec_t", "sd_b_dec_t", 
+                                       "mu_b_dec_c", "sd_b_dec_c",
+                                       "mu_b_umbr", "sd_b_umbr", 
+                                       "mu_b_umbr_tc", "sd_b_umbr_tc",
+                                       "mu_b_umbr_t", "sd_b_umbr_t", 
+                                       "mu_b_umbr_c", "sd_b_umbr_c",
+                                       "mu_b_lm", "sd_b_lm", 
+                                       "mu_b_lm_tc", "sd_b_lm_tc",
+                                       "mu_b_lm_t", "sd_b_lm_t", 
+                                       "mu_b_lm_c", "sd_b_lm_c"),
+                    n.iter = samples, 
+                    thin = n.thin)
 
 end <- Sys.time()
 end - start
 
 ## Export parameter estimates:
-capture.output(summary(zc), HPDinterval(zc, prob = 0.95)) %>% 
-  write(., "results/parameters_mixed_4.txt")
+capture.output(summary(zc1), HPDinterval(zc1, prob = 0.95)) %>% 
+  write(., "results/parameters_mixed_1part.txt")
 
 ## 5. Validate the model and export validation data and figures ----------------
 
-pdf("figures/plot_zc_mixed_4.pdf")
-plot(zc)
+pdf("figures/plot_zc_mixed_1part.pdf")
+plot(zc1)
 dev.off()
 
-capture.output(raftery.diag(zc), heidel.diag(zc)) %>% 
-  write(., "results/diagnostics_mixed_4.txt")
+capture.output(raftery.diag(zc1), heidel.diag(zc1)) %>% 
+  write(., "results/diagnostics_mixed_1part.txt")
 
 # ## Produce validation metrics: 
 # zj_val <- jags.samples(jm, 

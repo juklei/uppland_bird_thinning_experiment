@@ -49,33 +49,32 @@ diff$experiment <- "difference"
 ## Join before-after with differences:
 f_all <- rbind(f_red,diff)
 
-## 4. Adjust the raw experiment data to data by year for the JAGS model:
+## 4. Adjust the raw experiment data to data by year for the JAGS model --------
 
-## Replace NAs in the combination after*control with before*control
+## Create a "after" data set for all true controls, except for those that 
+## already have some "after" measurments, and add to f_raw:
+T1 <- f_red$plot[f_red$experiment == "after" & f_red$treatment == "TC"]
+T1 <- f_red[f_red$treatment == "TC" & !f_red$plot %in% T1, ]
+T1$experiment <- "after"
+f_red <- rbind(f_red, T1)
+
+## Replace NAs in the combination after*control|tc with before*control|tc
 F1 <- function(x){
-  x[x$treatment == "C" & x$experiment == "after", c(3:13, 17:20)] <- 
-    x[x$treatment == "C" & x$experiment == "before", c(3:13, 17:20)]
+  x[x$treatment %in% c("C", "TC") & x$experiment == "after", c(3:13, 17:20)] <- 
+    x[x$treatment %in% c("C", "TC") & x$experiment == "before", c(3:13, 17:20)]
   return(x)
 }
 f_raw <- f_red[, F1(.SD), by = "plot"]
 
-## Fill all true controls:
-T1 <- expand.grid.df(unique(f_raw[is.na(f_raw$effect_year), 
-                                  c("block", "plot", "effect_year")]),
-                     data.frame("year" = c(2017, 2018, 2019)))
-T1 <- merge(T1, f_raw[f_raw$experiment == "before"],
-            by = c("block", "plot", "effect_year"))
-
-## Fill treatments:
-T2 <- expand.grid.df(unique(f_raw[!is.na(f_raw$effect_year), 
-                                  c("block", "plot", "effect_year")]),
+## Fill for all years:
+T2 <- expand.grid.df(unique(f_raw[, c("block", "plot", "effect_year")]),
                      data.frame("year" = c(2017, 2018, 2019)))
 T3 <- merge(T2[T2$effect_year > T2$year,], f_raw[f_raw$experiment == "before"],
             by = c("block", "plot", "effect_year"))
 T4 <- merge(T2[T2$effect_year <= T2$year,], f_raw[f_raw$experiment == "after"],
             by = c("block", "plot", "effect_year"))
 
-f_raw <- rbind(T1,T3,T4)
+f_raw <- rbind(T3,T4)
 
 ## 5. Export:
 
