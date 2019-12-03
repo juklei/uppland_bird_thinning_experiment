@@ -11,6 +11,7 @@ rm(list = ls())
 
 library(boot)
 library(rjags)
+library(runjags)
 library(coda)
 library(magrittr)
 library(reshape2)
@@ -124,10 +125,10 @@ jm <- parJagsModel(cl = cl,
                    inits = inits,
                    n.chains = 3) 
 
-parUpdate(cl = cl, object = "bpo_bin", n.iter = 15000)
+parUpdate(cl = cl, object = "bpo_bin", n.iter = 5000)
 
-samples <- 10000
-n.thin <- 20
+samples <- 5000
+n.thin <- 10
 
 zc1 <- parCodaSamples(cl = cl, model = "bpo_bin",
                       variable.names = c("mu_a_pdet", 
@@ -140,9 +141,6 @@ zc2 <- parCodaSamples(cl = cl, model = "bpo_bin",
                       variable.names = c("a_pdet", "sd_pdet_year", "b_observer",
                                          "a_pocc", "sd_year", "sd_site"),
                       n.iter = samples, thin = n.thin)
-
-end <- Sys.time()
-end - start
 
 ## Export parameter estimates:
 capture.output(summary(zc1), HPDinterval(zc1, prob = 0.95)) %>% 
@@ -191,39 +189,48 @@ plot(zj_val$fit, zj_val$fit_sim,
 abline(0,1)
 text(x = 850, y = 700, paste0("P=", round(mean(zj_val$p_fit)), 3), cex = 1.5)
 
-## 6. Export -------------------------------------------------------------------
+## 6. Extract informtion from posterior ----------------------------------------
+
+## For community metrics:
 
 zc4 <- parCodaSamples(cl = cl, model = "bpo_bin",
+                      variable.names = c("CI_div_C_r", "CI_ctr_C_r", "BACI_C_r", 
+                                         "CI_div_T_r", "CI_ctr_T_r", "BACI_T_r",
+                                         "CI_div_URT_r", "CI_ctr_URT_r", "BACI_URT_r",
+                                         "CI_div_C_bd", "CI_ctr_C_bd", "BACI_C_bd", 
+                                         "CI_div_T_bd", "CI_ctr_T_bd", "BACI_T_bd",
+                                         "CI_div_URT_bd", "CI_ctr_URT_bd", "BACI_URT_bd"),
+                      n.iter = samples,
+                      thin = n.thin)
+
+## Export parameter estimates:
+capture.output(summary(zc4), HPDinterval(zc4, prob = 0.95)) %>% 
+  write(., "results/parameters_binomial_community.txt")
+
+## For species level metrics:
+
+zc5 <- parCodaSamples(cl = cl, model = "bpo_bin",
                       variable.names = c("CI_div_C", "CI_ctr_C", "BACI_C", 
                                          "CI_div_T", "CI_ctr_T", "BACI_T",
                                          "CI_div_URT", "CI_ctr_URT", "BACI_URT",
                                          "CI_div_C_cm", "CI_ctr_C_cm", "BACI_C_cm", 
                                          "CI_div_T_cm", "CI_ctr_T_cm", "BACI_T_cm",
-                                         "CI_div_URT_cm", "CI_ctr_URT_cm", "BACI_URT_cm",
-                                         "CI_div_C_r", "CI_ctr_C_r", "BACI_C_r", 
-                                         "CI_div_T_r", "CI_ctr_T_r", "BACI_T_r",
-                                         "CI_div_URT_r", "CI_ctr_URT_r", "BACI_URT_r"),
+                                         "CI_div_URT_cm", "CI_ctr_URT_cm", "BACI_URT_cm"),
                       n.iter = samples,
                       thin = n.thin)
 
-##############################################################3
-## Extract slopes from the linear model:
-export_beta_tb <- summary(zc)$quantiles[, c("2.5%","50%","97.5%")][row_select,]
+## Combine MCMC chains:
+zc5 <- combine.mcmc(zc5)
 
-## Extract probability that slope above or below 0 for beta_td:
-prob <- data.frame("cat" = colnames(zc[[1]])[row_select], 
-                   "prob" = rep(NA, dim(obs)[2]))
-for(i in 1:dim(obs)[2]){
-  prob$prob[i] <- 1-ecdf(unlist(zc[, paste(prob$cat[i])]))(0)
-}
-
-## Add probabilities to export_beta_tb:
-export_beta_tb <- cbind(export_beta_tb, prob)
-
-## Add species names:
-export_beta_tb$species <- unlist(dimnames(obs)[2])
+## Extract slopes and add ecdf and species names:
+BACI_sl <- as.data.frame(summary(zc5)$quantiles[, c("2.5%","50%","97.5%")])
+BACI_sl$ecdf <- as.vector(apply(zc5, 2, function(x) 1-ecdf(x)(0)))
+BACI_sl$species <- rep(c(levels(bpo$species), "cm"), ((max(data$treat)-1)*3))
 
 ## Export the data set for figures:
-write.csv(export_beta_tb[, -4], "clean/prob&slope_beta_tb.csv", row.names = F)
+write.csv(BACI_sl, "clean/BACI_sl.csv")
+
+end <- Sys.time()
+end - start
 
 ## -------------------------------END-------------------------------------------

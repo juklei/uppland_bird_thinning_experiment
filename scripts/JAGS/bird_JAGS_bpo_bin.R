@@ -158,24 +158,25 @@ model{
   CI_ctr_URT_r <- abs(BACI_r[4,2]-BACI_r[4,1]) - abs(BACI_r[3,2]-BACI_r[3,1])
   BACI_URT_r <- (BACI_r[4,2]-BACI_r[4,1]) - (BACI_r[3,2]-BACI_r[3,1])
   
-  ## BACI indicators for beta diversity:
+  ## BACI indicators for beta diversity according to Whittaker:
   
   for(n in 1:max(exp)){
     for(k in 1:nspecies){ 
-      BACI_gamma[k,n] <- ifelse(sum(occ_BACI[k,,n]) >= 1, 1, 0) ## occ_BACI[k,m,n] from above!
+      BACI_gamma[k,n] <- ifelse(sum(occ_BACI[k,,n]) > 0, 1, 0)
     } 
+    BACI_gd[n] <- sum(BACI_gamma[,n])
     for(m in 1:max(treat)){
-      BACI_beta[m,n] <- BACI_r[m,n]/sum(BACI_gamma[,n])
+      BACI_bd[m,n] <- BACI_gd[n]/ifelse(BACI_r[m,n] < 1, 1, BACI_r[m,n])
   }}
   
   CI_div_C_bd <- abs(BACI_bd[1,2]-BACI_bd[3,2]) - abs(BACI_bd[1,1]-BACI_bd[3,1])
   CI_ctr_C_bd <- abs(BACI_bd[1,2]-BACI_bd[1,1]) - abs(BACI_bd[3,2]-BACI_bd[3,1])
   BACI_C_bd <- (BACI_bd[1,2]-BACI_bd[1,1]) - (BACI_bd[3,2]-BACI_bd[3,1])
-  
+
   CI_div_T_bd <- abs(BACI_bd[2,2]-BACI_bd[3,2]) - abs(BACI_bd[2,1]-BACI_bd[3,1])
   CI_ctr_T_bd <- abs(BACI_bd[2,2]-BACI_bd[2,1]) - abs(BACI_bd[3,2]-BACI_bd[3,1])
   BACI_T_bd <- (BACI_bd[2,2]-BACI_bd[2,1]) - (BACI_bd[3,2]-BACI_bd[3,1])
-  
+
   CI_div_URT_bd <- abs(BACI_bd[4,2]-BACI_bd[3,2]) - abs(BACI_bd[4,1]-BACI_bd[3,1])
   CI_ctr_URT_bd <- abs(BACI_bd[4,2]-BACI_bd[4,1]) - abs(BACI_bd[3,2]-BACI_bd[3,1])
   BACI_URT_bd <- (BACI_bd[4,2]-BACI_bd[4,1]) - (BACI_bd[3,2]-BACI_bd[3,1])
