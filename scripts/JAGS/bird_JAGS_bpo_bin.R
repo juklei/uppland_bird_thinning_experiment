@@ -1,17 +1,18 @@
 ## bird bpo model with a binomial process for detection
 ##
 ## First edit: 20191201
-## Last edit: 20191201
+## Last edit: 20191203
 ##
 ## Author: Julian Klein
 
 model{
   
-  ## Likelihood:
+  ## Likelihood: ---------------------------------------------------------------
   
   ## Observational model:
   for(i in 1:nobs){
     observed[i] ~ dbin(occ_true[species[i],year[i],site[i]]*pdet[i], nvisits[i])
+    sim[i] ~ dbin(occ_true[species[i],year[i],site[i]]*pdet[i], nvisits[i])
     logit(pdet[i]) <- a_pdet[species[i]] + e_pdet_year[species[i],year[i]] +
                       b_observer*observer[i]
   }
@@ -32,7 +33,7 @@ model{
     for(p in 1:nsites){e_site[k,p] ~ dnorm(0, 1/sd_site[k]^2)}
   }
   
-  ## Priors:
+  ## Priors: -------------------------------------------------------------------
   
   ## Observational model:
   for(k in 1:nspecies){
@@ -62,40 +63,38 @@ model{
   for(m in 1:max(treat)){
     for(n in 1:max(exp)){
       mu_a_pocc[m,n] ~ dnorm(0, 0.01)
-      sd_a_pocc[m,n]~ dunif(0, 5)
+      sd_a_pocc[m,n] ~ dunif(0, 5)
   }}
   u_sd_year ~ dt(0,1,1)T(0,10)
   u_sd_site ~ dt(0,1,1)T(0,10)
 
-  ## Model validation:
+  ## Model validation: ---------------------------------------------------------
   
-  ## Posteriors:
+  ## Bayesian p-value:
+  mean_obs <- mean(observed[])
+  mean_sim <- mean(sim[])
+  p_mean <- step(mean_sim - mean_obs)
   
-  ## BACI indicators:
+  ## Coefficient of variation:
+  cv_obs <- sd(observed[])/mean_obs
+  cv_sim <- sd(sim[])/mean_sim
+  p_cv <- step(cv_sim - cv_obs)
   
-  ## Posterior distributions of the three measurements of impact:
-  
-  for(k in 1:nspecies){ ## Backtransform to logit
-    for(m in 1:max(treat)){
-      for(n in 1:max(exp)){
-        logit(BACI[k,m,n]) <- a_pocc[k,m,n]
-    }}
-  
-  CI_div_C[k] <-  abs(BACI[k,1,2]-BACI[k,3,2]) - abs(BACI[k,1,1]-BACI[k,3,1])
-  CI_ctr_C[k] <- abs(BACI[k,1,2]-BACI[k,1,1]) - abs(BACI[k,3,2]-BACI[k,3,1])
-  BACI_C[k] <- (BACI[k,1,2]-BACI[k,1,1]) - (BACI[k,3,2]-BACI[k,3,1])
-  
-  CI_div_T[k] <- abs(BACI[k,2,2]-BACI[k,3,2]) - abs(BACI[k,2,1]-BACI[k,3,1])
-  CI_ctr_T[k] <- abs(BACI[k,2,2]-BACI[k,2,1]) - abs(BACI[k,3,2]-BACI[k,3,1])
-  BACI_T[k] <- (BACI[k,2,2]-BACI[k,2,1]) - (BACI[k,3,2]-BACI[k,3,1])
-  
-  CI_div_URT[k] <- abs(BACI[k,4,2]-BACI[k,3,2]) - abs(BACI[k,4,1]-BACI[k,3,1])
-  CI_ctr_URT[k] <- abs(BACI[k,4,2]-BACI[k,4,1]) - abs(BACI[k,3,2]-BACI[k,3,1])
-  BACI_URT[k] <- (BACI[k,4,2]-BACI[k,4,1]) - (BACI[k,3,2]-BACI[k,3,1])
-  
+  ## Model fit:
+  for(i in 1:nobs){
+    sq[i] <- (observed[i] - 
+                occ_true[species[i],year[i],site[i]]*pdet[i]*nvisits[i])^2
+    sq_sim[i] <- (sim[i] - 
+                    occ_true[species[i],year[i],site[i]]*pdet[i]*nvisits[i])^2
   }
   
-  ## For mean community response: 
+  fit <- sum(sq[])
+  fit_sim <- sum(sq_sim[])
+  p_fit <- step(fit_sim - fit)
+  
+  ## Posteriors: ---------------------------------------------------------------
+
+  ## BACI indicators for mean community response: 
   
   for(m in 1:max(treat)){ ## Backtransform to logit
     for(n in 1:max(exp)){
@@ -114,13 +113,72 @@ model{
   CI_ctr_URT_cm <- abs(BACI_cm[4,2]-BACI_cm[4,1]) - abs(BACI_cm[3,2]-BACI_cm[3,1])
   BACI_URT_cm <- (BACI_cm[4,2]-BACI_cm[4,1]) - (BACI_cm[3,2]-BACI_cm[3,1])
 
-  ## For species richness: 
+  ## BACI indicators for species specific response:
   
-  ##...
+  for(k in 1:nspecies){ ## Backtransform to logit
+    for(m in 1:max(treat)){
+      for(n in 1:max(exp)){
+        logit(BACI[k,m,n]) <- a_pocc[k,m,n]
+    }}
+    
+    CI_div_C[k] <-  abs(BACI[k,1,2]-BACI[k,3,2]) - abs(BACI[k,1,1]-BACI[k,3,1])
+    CI_ctr_C[k] <- abs(BACI[k,1,2]-BACI[k,1,1]) - abs(BACI[k,3,2]-BACI[k,3,1])
+    BACI_C[k] <- (BACI[k,1,2]-BACI[k,1,1]) - (BACI[k,3,2]-BACI[k,3,1])
+    
+    CI_div_T[k] <- abs(BACI[k,2,2]-BACI[k,3,2]) - abs(BACI[k,2,1]-BACI[k,3,1])
+    CI_ctr_T[k] <- abs(BACI[k,2,2]-BACI[k,2,1]) - abs(BACI[k,3,2]-BACI[k,3,1])
+    BACI_T[k] <- (BACI[k,2,2]-BACI[k,2,1]) - (BACI[k,3,2]-BACI[k,3,1])
+    
+    CI_div_URT[k] <- abs(BACI[k,4,2]-BACI[k,3,2]) - abs(BACI[k,4,1]-BACI[k,3,1])
+    CI_ctr_URT[k] <- abs(BACI[k,4,2]-BACI[k,4,1]) - abs(BACI[k,3,2]-BACI[k,3,1])
+    BACI_URT[k] <- (BACI[k,4,2]-BACI[k,4,1]) - (BACI[k,3,2]-BACI[k,3,1])
+    
+  }
   
-  ## For beta diversirty:
+  ## BACI indicators for species richness: 
   
-  ##...
+  ## Simulate species occupancy per species*treatment*experiment combination:
+  for(m in 1:max(treat)){
+    for(n in 1:max(exp)){
+      for(k in 1:nspecies){ 
+        occ_BACI[k,m,n] ~ dbern(BACI[k,m,n]) ## BACI[k,m,n] from above!
+        } 
+      BACI_r[m,n] <- sum(occ_BACI[,m,n])
+  }}
+  
+  CI_div_C_r <- abs(BACI_r[1,2]-BACI_r[3,2]) - abs(BACI_r[1,1]-BACI_r[3,1])
+  CI_ctr_C_r <- abs(BACI_r[1,2]-BACI_r[1,1]) - abs(BACI_r[3,2]-BACI_r[3,1])
+  BACI_C_r <- (BACI_r[1,2]-BACI_r[1,1]) - (BACI_r[3,2]-BACI_r[3,1])
+  
+  CI_div_T_r <- abs(BACI_r[2,2]-BACI_r[3,2]) - abs(BACI_r[2,1]-BACI_r[3,1])
+  CI_ctr_T_r <- abs(BACI_r[2,2]-BACI_r[2,1]) - abs(BACI_r[3,2]-BACI_r[3,1])
+  BACI_T_r <- (BACI_r[2,2]-BACI_r[2,1]) - (BACI_r[3,2]-BACI_r[3,1])
+  
+  CI_div_URT_r <- abs(BACI_r[4,2]-BACI_r[3,2]) - abs(BACI_r[4,1]-BACI_r[3,1])
+  CI_ctr_URT_r <- abs(BACI_r[4,2]-BACI_r[4,1]) - abs(BACI_r[3,2]-BACI_r[3,1])
+  BACI_URT_r <- (BACI_r[4,2]-BACI_r[4,1]) - (BACI_r[3,2]-BACI_r[3,1])
+  
+  ## BACI indicators for beta diversity:
+  
+  for(n in 1:max(exp)){
+    for(k in 1:nspecies){ 
+      BACI_gamma[k,n] <- ifelse(sum(occ_BACI[k,,n]) >= 1, 1, 0) ## occ_BACI[k,m,n] from above!
+    } 
+    for(m in 1:max(treat)){
+      BACI_beta[m,n] <- BACI_r[m,n]/sum(BACI_gamma[,n])
+  }}
+  
+  CI_div_C_bd <- abs(BACI_bd[1,2]-BACI_bd[3,2]) - abs(BACI_bd[1,1]-BACI_bd[3,1])
+  CI_ctr_C_bd <- abs(BACI_bd[1,2]-BACI_bd[1,1]) - abs(BACI_bd[3,2]-BACI_bd[3,1])
+  BACI_C_bd <- (BACI_bd[1,2]-BACI_bd[1,1]) - (BACI_bd[3,2]-BACI_bd[3,1])
+  
+  CI_div_T_bd <- abs(BACI_bd[2,2]-BACI_bd[3,2]) - abs(BACI_bd[2,1]-BACI_bd[3,1])
+  CI_ctr_T_bd <- abs(BACI_bd[2,2]-BACI_bd[2,1]) - abs(BACI_bd[3,2]-BACI_bd[3,1])
+  BACI_T_bd <- (BACI_bd[2,2]-BACI_bd[2,1]) - (BACI_bd[3,2]-BACI_bd[3,1])
+  
+  CI_div_URT_bd <- abs(BACI_bd[4,2]-BACI_bd[3,2]) - abs(BACI_bd[4,1]-BACI_bd[3,1])
+  CI_ctr_URT_bd <- abs(BACI_bd[4,2]-BACI_bd[4,1]) - abs(BACI_bd[3,2]-BACI_bd[3,1])
+  BACI_URT_bd <- (BACI_bd[4,2]-BACI_bd[4,1]) - (BACI_bd[3,2]-BACI_bd[3,1])
   
 }
 
