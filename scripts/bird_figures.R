@@ -66,8 +66,10 @@ dev.off()
 ## Graph for slopes with CIs:
 
 ## Order:
-BACI_sl$species <- factor(BACI_sl$species, 
-                          levels = unique(BACI_sl$species[order(BACI_sl$X50.)]))
+O1 <- BACI_sl[BACI_sl$indicator == "BACI" & BACI_sl$treatment == "T", 
+              c("X.50.", "species")]
+O1 <- O1$species[order(O1$X.50.)]
+BACI_sl$species <- factor(BACI_sl$species, levels = O1)
 
 ## Community response:
 BACI_sl$cm <- ifelse(BACI_sl$species == "cm", "community mean", "individual")
@@ -84,7 +86,7 @@ g2 <- geom_errorbar(aes(ymin = X2.5., ymax = X97.5.), size = 3, width = 0, posit
 #g3 <- geom_point(position = position_dodge(1), size = 1, color = "black")
 g4 <- facet_grid(cm ~ indicator, space = "free", scales = "free")
 G <- g1 +
-  geom_hline(yintercept = 0, linetype = "dashed") + 
+  geom_hline(yintercept = 0, size = 2) + 
   g2 + g4 + #g3 +
   xlab("") + ylab("") +
   theme_bw(40) + coord_flip() +
@@ -99,8 +101,10 @@ png("figures/BACI_slopes.png", 20000/8, 20000/8, "px", res = 600/8); G; dev.off(
 ## Graph for probabilies:
 
 ## Order:
-BACI_sl$species <- factor(BACI_sl$species, 
-                          levels = unique(BACI_sl$species[order(BACI_sl$ecdf)]))
+O2 <- BACI_sl[BACI_sl$indicator == "BACI" & BACI_sl$treatment == "T", 
+              c("ecdf", "species")]
+O2 <- O2$species[order(O2$ecdf)]
+BACI_sl$species <- factor(BACI_sl$species, levels = O2)
 
 p1 <- ggplot(data = BACI_sl, aes(x = species, y = 0, colour = treatment))
 p2a <- geom_errorbar(aes(ymin = 0, ymax = BACI_sl$ecdf), 
@@ -111,7 +115,8 @@ p2b <- geom_errorbar(aes(ymin = BACI_sl$ecdf - 1, ymax = 0),
                      position = position_dodge(0.5),
                      size = 3,                  
                      width = 0)
-P <- p1 + 
+P <- p1 +
+  geom_hline(yintercept = 0, size = 2) + 
   scale_y_continuous(breaks = c(-0.95, -0.5, 0, 0.5, 0.95),
                      labels = c(".95", ".5", "0", "", ""),
                      sec.axis = dup_axis(
