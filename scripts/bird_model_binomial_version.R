@@ -30,8 +30,8 @@ TT <- "treatment"
 # TT <- "V" 
 
 ## Chose reference level:
-ref <- "TC"
-# ref <- "C"
+# ref <- "TC"
+ref <- "C"
 
 ## Calculate data:
 source("scripts/data_calc.r")
@@ -88,14 +88,14 @@ jm <- parJagsModel(cl = cl,
                    name = "bpo_bin",
                    file = model,
                    data = data,
-                   n.adapt = 1000, 
+                   n.adapt = 5000, 
                    inits = inits,
                    n.chains = 3) 
 
-parUpdate(cl = cl, object = "bpo_bin", n.iter = 4000)
+parUpdate(cl = cl, object = "bpo_bin", n.iter = 5000)
 
-samples <- 1000
-n.thin <- 2
+samples <- 5000
+n.thin <- 10
 
 zc1 <- parCodaSamples(cl = cl, model = "bpo_bin",
                       variable.names = c("mu_a_pdet", "sd_a_pdet",
@@ -171,40 +171,32 @@ capture.output(raftery.diag(zc2),
 
 ## 5. Extract informtion from posterior ----------------------------------------
 
-## For community metrics:
+## For community and species level metrics:
 
 zc4 <- parCodaSamples(cl = cl, model = "bpo_bin",
                       variable.names = c("CI_div_r", "CI_ctr_r", "BACI_r",
-                                         "CI_div_bd", "CI_ctr_bd", "BACI_bd"),
-                      n.iter = samples,
-                      thin = n.thin)
-
-## Export parameter estimates:
-capture.output(summary(zc4), HPDinterval(zc4, prob = 0.95)) %>% 
-  write(., paste0("results/params_", TT, "_", ref, "_community.txt"))
-
-## For species level metrics:
-
-zc5 <- parCodaSamples(cl = cl, model = "bpo_bin",
-                      variable.names = c("CI_div_sl", "CI_ctr_sl", "BACI_sl", 
+                                         "CI_div_bd", "CI_ctr_bd", "BACI_bd",
+                                         "CI_div_sl", "CI_ctr_sl", "BACI_sl", 
                                          "CI_div_cm", "CI_ctr_cm", "BACI_cm"),
                       n.iter = samples,
                       thin = n.thin)
 
 ## Combine MCMC chains:
-zc5 <- combine.mcmc(zc5)
+zc4 <- combine.mcmc(zc4)
 
 ## Extract slopes and add ecdf and species names:
-BACI_sl <- as.data.frame(summary(zc5)$quantiles[, c("2.5%","50%","97.5%")])
-BACI_sl$ecdf <- as.vector(apply(zc5, 2, function(x) 1-ecdf(x)(0)))
-BACI_sl$species <- c(rep("cm", length(data$eval)),
-                     sort(rep(levels(bpo$species), length(data$eval))))
+BACI_sl <- as.data.frame(summary(zc4)$quantiles[, c("2.5%","50%","97.5%")])
+BACI_sl$ecdf <- as.vector(apply(zc4, 2, function(x) 1-ecdf(x)(0)))
+BACI_sl$identity <- c(rep("beta", length(data$eval)),
+                      rep("cm", length(data$eval)),
+                      rep("alpha", length(data$eval)),
+                      sort(rep(levels(bpo$species), length(data$eval))))
 
 ## Add treatment*BACI indicator categorisation:
 BACI_sl$treatment <- levels(forest[, TT])[data$eval]
-BACI_sl$indicator <- c(rep("BACI", length(data$eval)*(data$nspecies+1)),
-                       rep("CI_ctr", length(data$eval)*(data$nspecies+1)),
-                       rep("CI_div", length(data$eval)*(data$nspecies+1)))
+BACI_sl$indicator <- c(rep("BACI", length(data$eval)*(data$nspecies+3)),
+                       rep("CI_ctr", length(data$eval)*(data$nspecies+3)),
+                       rep("CI_div", length(data$eval)*(data$nspecies+3)))
 
 ## Export the data set for figures:
 write.csv(BACI_sl, paste0("clean/BACI_sl_", TT, "_", ref, ".csv"))
