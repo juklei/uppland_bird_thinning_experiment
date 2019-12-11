@@ -30,6 +30,15 @@ f_red$perc_gran <- f_red$nr_gran/f_red$nr_all_alive
 f_red$perc_lov <- f_red$nr_lov/f_red$nr_all_alive
 f_red$perc_tall <- f_red$nr_tall/f_red$nr_all_alive
 f_red$perc_skarm <- f_red$nr_skarm/f_red$nr_all_alive
+f_red$perc_dv <- f_red$nr_staende_dodved/(f_red$nr_all_alive + 
+                                            f_red$nr_staende_dodved)
+
+## Calculate BA:
+f_red$BA_gran <- (f_red$average_dbh_gran/200)^2*pi*f_red$nr_gran
+f_red$BA_lov <- (f_red$average_dbh_lov/200)^2*pi*f_red$nr_lov
+f_red$BA_tall <- (f_red$average_dbh_tall/200)^2*pi*f_red$nr_tall
+f_red$BA_dv <- (f_red$average_dbh_staende_dodved/200)^2*pi*f_red$nr_staende_dodved
+f_red$BA <- (f_red$average_dbh_all_alive/200)^2*pi*f_red$nr_all_alive
 
 ## Calculate differences:
 
@@ -60,8 +69,8 @@ f_red <- rbind(f_red, T1)
 
 ## Replace NAs in the combination after*control|tc with before*control|tc
 F1 <- function(x){
-  x[x$treatment %in% c("C", "TC") & x$experiment == "after", c(3:13, 17:20)] <- 
-    x[x$treatment %in% c("C", "TC") & x$experiment == "before", c(3:13, 17:20)]
+  x[x$treatment %in% c("C", "TC") & x$experiment == "after", c(3:13, 17:26)] <- 
+    x[x$treatment %in% c("C", "TC") & x$experiment == "before", c(3:13, 17:26)]
   return(x)
 }
 f_raw <- f_red[, F1(.SD), by = "plot"]

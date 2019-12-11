@@ -67,8 +67,8 @@ dev.off()
 
 ## Order:
 O1 <- BACI_sl[BACI_sl$indicator == "BACI" & BACI_sl$treatment == "T", 
-              c("X.50.", "species")]
-O1 <- O1$species[order(O1$X.50.)]
+              c("X50.", "species")]
+O1 <- O1$species[order(O1$X50.)]
 BACI_sl$species <- factor(BACI_sl$species, levels = O1)
 
 ## Community response:
