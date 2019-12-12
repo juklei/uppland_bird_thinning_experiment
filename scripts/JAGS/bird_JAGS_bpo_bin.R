@@ -25,7 +25,7 @@ model{
     for(y in 1:nyears){
       for(p in 1:nsites){
         occ_true[k,y,p] ~ dbern(pocc[k,y,p])
-        logit(pocc[k,y,p]) <- a_pocc[k,treat[p],exp[y,p]] + ## Change according to what you want to do here!
+        logit(pocc[k,y,p]) <- a_pocc[k,treat[p],exp[y,p]] + 
                               b_pocc_2018[k]*ifelse(y==2,1,0) +
                               b_pocc_2019[k]*ifelse(y==3,1,0) #+
                               #e_block[k,block[p]]
@@ -109,6 +109,9 @@ model{
 
   ## Posteriors: ---------------------------------------------------------------
 
+  ## Export true occupancies:
+  for(i in 1:nobs){occ_true_out[i] <- occ_true[species[i],year[i],site[i]]}
+  
   ## BACI indicators for mean community response:
 
   for(m in 1:max(treat)){ ## Backtransform to logit
@@ -143,42 +146,44 @@ model{
 
   ## BACI indicators for species richness:
 
-  ## Simulate species occupancy per species*treatment*experiment combination:
+  ## Predict species occupancy per species*treatment*experiment combination:
   for(m in 1:max(treat)){
     for(n in 1:max(exp)){
       for(k in 1:nspecies){
         occ_BACI[k,m,n]  <- ifelse(BACI_species[k,m,n] > 0.5, 1, 0)
         }
-      BACI_alpha[m,n] <- sum(occ_BACI[,m,n])
+      rich[m,n] <- sum(occ_BACI[,m,n])
   }}
 
   for(o in eval){
-    CI_div_r[o] <- abs(BACI_alpha[o,2]-BACI_alpha[ref,2]) - 
-                   abs(BACI_alpha[o,1]-BACI_alpha[ref,1])
-    CI_ctr_r[o] <- abs(BACI_alpha[o,2]-BACI_alpha[o,1]) - 
-                   abs(BACI_alpha[ref,2]-BACI_alpha[ref,1])
-    BACI_r[o] <- (BACI_alpha[o,2]-BACI_alpha[o,1]) - 
-                 (BACI_alpha[ref,2]-BACI_alpha[ref,1])
+    CI_div_r[o] <- abs(rich[o,2]-rich[ref,2]) - abs(rich[o,1]-rich[ref,1])
+    CI_ctr_r[o] <- abs(rich[o,2]-rich[o,1]) - abs(rich[ref,2]-rich[ref,1])
+    BACI_r[o] <- (rich[o,2]-rich[o,1]) - (rich[ref,2]-rich[ref,1])
   }
 
-  ## BACI indicators for beta diversity according to Whittaker:
+  ## BACI indicators for beta diversity (Jaccard index):
 
-  for(n in 1:max(exp)){
-    for(k in 1:nspecies){
-      lsc_occ[k,n] <- ifelse(sum(occ_BACI[k,,n]) > 0, 1, 0)
-    }
-    BACI_gamma[n] <- sum(lsc_occ[,n])
+  ## Simulate 2 plots for each m*n: 
+  for(q in 1:2){
     for(m in 1:max(treat)){
-      BACI_beta[m,n] <- BACI_gamma[n]/ifelse(BACI_alpha[m,n] < 1, 1, BACI_alpha[m,n])
+      for(n in 1:max(exp)){
+        for(k in 1:nspecies){
+          sim_occ[k,m,n,q] ~ dbern(BACI_species[k,m,n])
+  }}}}
+  
+  ## Calculate for every m*n the jaccard index:
+  for(m in 1:max(treat)){
+    for(n in 1:max(exp)){
+      JI[m,n] <- sum(sim_occ[,m,n,1]*sim_occ[,m,n,2])/
+                 (ifelse(sum(sim_occ[,m,n,1]) == 0, 1, sum(sim_occ[,m,n,1])) + 
+                 sum(sim_occ[,m,n,2]) - 
+                 sum(sim_occ[,m,n,1]*sim_occ[,m,n,2]))
   }}
-
+  
   for(o in eval){
-    CI_div_bd[o] <- abs(BACI_beta[o,2]-BACI_beta[ref,2]) - 
-                    abs(BACI_beta[o,1]-BACI_beta[ref,1])
-    CI_ctr_bd[o] <- abs(BACI_beta[o,2]-BACI_beta[o,1]) - 
-                    abs(BACI_beta[ref,2]-BACI_beta[ref,1])
-    BACI_bd[o] <- (BACI_beta[o,2]-BACI_beta[o,1]) - 
-                  (BACI_beta[ref,2]-BACI_beta[ref,1])
+    CI_div_bd[o] <- abs(JI[o,2]-JI[ref,2]) - abs(JI[o,1]-JI[ref,1])
+    CI_ctr_bd[o] <- abs(JI[o,2]-JI[o,1]) - abs(JI[ref,2]-JI[ref,1])
+    BACI_bd[o] <- (JI[o,2]-JI[o,1]) - (JI[ref,2]-JI[ref,1])
   }
   
 }

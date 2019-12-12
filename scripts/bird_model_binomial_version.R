@@ -30,8 +30,8 @@ TT <- "treatment"
 # TT <- "V" 
 
 ## Chose reference level:
-# ref <- "TC"
-ref <- "C"
+ref <- "TC"
+# ref <- "C"
 
 ## Calculate data:
 source("scripts/data_calc.r")
@@ -88,14 +88,14 @@ jm <- parJagsModel(cl = cl,
                    name = "bpo_bin",
                    file = model,
                    data = data,
-                   n.adapt = 5000, 
+                   n.adapt = 1000, 
                    inits = inits,
                    n.chains = 3) 
 
-parUpdate(cl = cl, object = "bpo_bin", n.iter = 5000)
+parUpdate(cl = cl, object = "bpo_bin", n.iter = 1000)
 
-samples <- 5000
-n.thin <- 10
+samples <- 1000
+n.thin <- 2
 
 zc1 <- parCodaSamples(cl = cl, model = "bpo_bin",
                       variable.names = c("mu_a_pdet", "sd_a_pdet",
@@ -171,22 +171,31 @@ capture.output(raftery.diag(zc2),
 
 ## 5. Extract informtion from posterior ----------------------------------------
 
+# ## Store true occurrences for modelling community parameters:
+# 
+# zc4 <- parCodaSamples(cl = cl, model = "bpo_bin",
+#                       variable.names = "occ_true_out",
+#                       n.iter = samples,
+#                       thin = n.thin)
+# 
+# save(zc4, file = "clean/occ_true_out.rda")
+
 ## For community and species level metrics:
 
-zc4 <- parCodaSamples(cl = cl, model = "bpo_bin",
-                      variable.names = c("CI_div_r", "CI_ctr_r", "BACI_r",
-                                         "CI_div_bd", "CI_ctr_bd", "BACI_bd",
+zc5 <- parCodaSamples(cl = cl, model = "bpo_bin",
+                      variable.names = c("CI_div_bd", "CI_ctr_bd", "BACI_bd",
+                                         "CI_div_r", "CI_ctr_r", "BACI_r",
                                          "CI_div_sl", "CI_ctr_sl", "BACI_sl", 
                                          "CI_div_cm", "CI_ctr_cm", "BACI_cm"),
                       n.iter = samples,
                       thin = n.thin)
 
 ## Combine MCMC chains:
-zc4 <- combine.mcmc(zc4)
+zc5 <- combine.mcmc(zc5)
 
 ## Extract slopes and add ecdf and species names:
-BACI_sl <- as.data.frame(summary(zc4)$quantiles[, c("2.5%","50%","97.5%")])
-BACI_sl$ecdf <- as.vector(apply(zc4, 2, function(x) 1-ecdf(x)(0)))
+BACI_sl <- as.data.frame(summary(zc5)$quantiles[, c("2.5%","50%","97.5%")])
+BACI_sl$ecdf <- as.vector(apply(zc5, 2, function(x) 1-ecdf(x)(0)))
 BACI_sl$identity <- c(rep("beta", length(data$eval)),
                       rep("cm", length(data$eval)),
                       rep("alpha", length(data$eval)),
