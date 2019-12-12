@@ -146,13 +146,10 @@ model{
 
   ## BACI indicators for species richness:
 
-  ## Predict species occupancy per species*treatment*experiment combination:
+  ## Predict richness per treatment*experiment combination:
   for(m in 1:max(treat)){
     for(n in 1:max(exp)){
-      for(k in 1:nspecies){
-        occ_BACI[k,m,n]  <- ifelse(BACI_species[k,m,n] > 0.5, 1, 0)
-        }
-      rich[m,n] <- sum(occ_BACI[,m,n])
+      rich[m,n] <- sum(BACI_species[,m,n])
   }}
 
   for(o in eval){
@@ -178,12 +175,13 @@ model{
                  (ifelse(sum(sim_occ[,m,n,1]) == 0, 1, sum(sim_occ[,m,n,1])) + 
                  sum(sim_occ[,m,n,2]) - 
                  sum(sim_occ[,m,n,1]*sim_occ[,m,n,2]))
+      negJI[m,n] <- 1 - JI[m,n]
   }}
   
   for(o in eval){
-    CI_div_bd[o] <- abs(JI[o,2]-JI[ref,2]) - abs(JI[o,1]-JI[ref,1])
-    CI_ctr_bd[o] <- abs(JI[o,2]-JI[o,1]) - abs(JI[ref,2]-JI[ref,1])
-    BACI_bd[o] <- (JI[o,2]-JI[o,1]) - (JI[ref,2]-JI[ref,1])
+    CI_div_bd[o] <- abs(negJI[o,2]-negJI[ref,2]) - abs(negJI[o,1]-negJI[ref,1])
+    CI_ctr_bd[o] <- abs(negJI[o,2]-negJI[o,1]) - abs(negJI[ref,2]-negJI[ref,1])
+    BACI_bd[o] <- (negJI[o,2]-negJI[o,1]) - (negJI[ref,2]-negJI[ref,1])
   }
   
 }

@@ -171,14 +171,14 @@ capture.output(raftery.diag(zc2),
 
 ## 5. Extract informtion from posterior ----------------------------------------
 
-# ## Store true occurrences for modelling community parameters:
-# 
-# zc4 <- parCodaSamples(cl = cl, model = "bpo_bin",
-#                       variable.names = "occ_true_out",
-#                       n.iter = samples,
-#                       thin = n.thin)
-# 
-# save(zc4, file = "clean/occ_true_out.rda")
+## Store true occurrences for modelling community parameters:
+
+zc4 <- parCodaSamples(cl = cl, model = "bpo_bin",
+                      variable.names = "occ_true_out",
+                      n.iter = samples,
+                      thin = n.thin)
+
+save(zc4, file = "clean/occ_true_out.rda")
 
 ## For community and species level metrics:
 
