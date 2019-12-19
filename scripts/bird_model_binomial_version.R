@@ -1,7 +1,7 @@
 ## model birds in a hierarchical model
 ## 
 ## First edit: 20191201
-## Last edit: 20191210
+## Last edit: 20191212
 ##
 ## Author: Julian Klein
 
@@ -21,10 +21,10 @@ library(dclone)
 ## 2. Chose treatments and define reference treatment. Then create data. -------
 
 ## Chose treatment type you want to evaluate:
-TT <- "treatment" 
-# TT <- "TCvsNC" 
-# TT <- "BA_all"  
-# TT <- "BA_dec" 
+# TT <- "treatment" 
+TT <- "TCvsNC"
+# TT <- "BA_all"
+# TT <- "BA_dec"
 # TT <- "BA_spruce" 
 # TT <- "BA_dw" 
 # TT <- "V" 
@@ -88,14 +88,14 @@ jm <- parJagsModel(cl = cl,
                    name = "bpo_bin",
                    file = model,
                    data = data,
-                   n.adapt = 1000, 
+                   n.adapt = 10000, 
                    inits = inits,
                    n.chains = 3) 
 
-parUpdate(cl = cl, object = "bpo_bin", n.iter = 1000)
+parUpdate(cl = cl, object = "bpo_bin", n.iter = 10000)
 
-samples <- 1000
-n.thin <- 2
+samples <- 100000
+n.thin <- 100
 
 zc1 <- parCodaSamples(cl = cl, model = "bpo_bin",
                       variable.names = c("mu_a_pdet", "sd_a_pdet",
@@ -109,34 +109,34 @@ zc1 <- parCodaSamples(cl = cl, model = "bpo_bin",
                                          "u_sd_block"),
                       n.iter = samples, thin = n.thin)
 
-zc2 <- parCodaSamples(cl = cl, model = "bpo_bin",
-                      variable.names = c("a_pdet", "a_pocc"),
-                      n.iter = samples, thin = n.thin)
+# zc2 <- parCodaSamples(cl = cl, model = "bpo_bin",
+#                       variable.names = c("a_pdet", "a_pocc"),
+#                       n.iter = samples, thin = n.thin)
 
 ## Export parameter estimates:
 capture.output(summary(zc1), HPDinterval(zc1, prob = 0.95)) %>% 
   write(., paste0("results/params_", TT, "_", ref, "_hp.txt"))
-capture.output(summary(zc2), HPDinterval(zc2, prob = 0.95)) %>%
-  write(., paste0("results/params_", TT, "_", ref, "_p.txt"))
+# capture.output(summary(zc2), HPDinterval(zc2, prob = 0.95)) %>%
+#   write(., paste0("results/params_", TT, "_", ref, "_p.txt"))
 
 ## 4. Validate the model and export validation data and figures ----------------
 
 pdf(paste0("figures/", TT, "_", ref, "_hp.pdf"))
 plot(zc1); gelman.plot(zc1) 
 dev.off()
-pdf(paste0("figures/", TT, "_", ref, "_p.pdf")) 
-plot(zc2); gelman.plot(zc2) 
-dev.off()
+# pdf(paste0("figures/", TT, "_", ref, "_p.pdf")) 
+# plot(zc2); gelman.plot(zc2) 
+# dev.off()
 
 capture.output(raftery.diag(zc1), 
                heidel.diag(zc1), 
                gelman.diag(zc1),
                cor(data.frame(combine.mcmc(zc1)))) %>% 
   write(., paste0("results/dign_", TT, "_", ref, "_hp.txt"))
-capture.output(raftery.diag(zc2),
-               heidel.diag(zc2),
-               gelman.diag(zc2)) %>%
-  write(., paste0("results/dign_", TT, "_", ref, "_p.txt"))
+# capture.output(raftery.diag(zc2),
+#                heidel.diag(zc2),
+#                gelman.diag(zc2)) %>%
+#   write(., paste0("results/dign_", TT, "_", ref, "_p.txt"))
 
 # ## Produce validation metrics:
 # zc3 <- parCodaSamples(cl = cl, model = "bpo_bin",
@@ -180,9 +180,15 @@ zc4 <- parCodaSamples(cl = cl, model = "bpo_bin",
 
 save(zc4, file = "clean/occ_true_out.rda")
 
+## Compare TC and NC before the experiment:
+zc5 <- parCodaSamples(cl = cl, model = "bpo_bin",
+                      variable.names = c("TC_NC_before"),
+                      n.iter = samples,
+                      thin = n.thin)
+
 ## For community and species level metrics:
 
-zc5 <- parCodaSamples(cl = cl, model = "bpo_bin",
+zc6 <- parCodaSamples(cl = cl, model = "bpo_bin",
                       variable.names = c("CI_div_bd", "CI_ctr_bd", "BACI_bd",
                                          "CI_div_r", "CI_ctr_r", "BACI_r",
                                          "CI_div_sl", "CI_ctr_sl", "BACI_sl", 
@@ -191,11 +197,11 @@ zc5 <- parCodaSamples(cl = cl, model = "bpo_bin",
                       thin = n.thin)
 
 ## Combine MCMC chains:
-zc5 <- combine.mcmc(zc5)
+zc6 <- combine.mcmc(zc6)
 
 ## Extract slopes and add ecdf and species names:
-BACI_sl <- as.data.frame(summary(zc5)$quantiles[, c("2.5%","50%","97.5%")])
-BACI_sl$ecdf <- as.vector(apply(zc5, 2, function(x) 1-ecdf(x)(0)))
+BACI_sl <- as.data.frame(summary(zc6)$quantiles[, c("2.5%","50%","97.5%")])
+BACI_sl$ecdf <- as.vector(apply(zc6, 2, function(x) 1-ecdf(x)(0)))
 BACI_sl$identity <- c(rep("beta", length(data$eval)),
                       rep("cm", length(data$eval)),
                       rep("alpha", length(data$eval)),
