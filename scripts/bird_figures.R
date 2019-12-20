@@ -7,24 +7,24 @@
 
 ## 1. Clear environment and load libraries -------------------------------------
 
-rm(list = ls())
+# rm(list = ls())
 
 require("ggplot2")
 require("rjags")
 require("data.table")
 
-## 2. Define or source functions used in this script ---------------------------
-
-
-## 3. Load and explore data ----------------------------------------------------
+## 2. Load and explore data ----------------------------------------------------
 
 forest <- as.data.table(read.csv("clean/forest_experiment_data.csv"))
 head(forest)
 
-BACI_sl <- read.csv("clean/BACI_sl_treatment_TC.csv")
+non_exp <- read.csv("clean/non_exp.csv")
+head(non_exp)
+
+BACI_sl <- read.csv("clean/BACI_sl_BA_all_C.csv")
 head(BACI_sl)
 
-## 4. Make graphs with the explanatory data ------------------------------------
+## 3. Make graphs with the explanatory data ------------------------------------
 
 ## Graph with tree numbers:
 
@@ -61,6 +61,52 @@ G1
 
 dev.off()
 
+## 4. Make graphs for the non-experimental plots for forest variables ----------
+
+## Add significance grouping:
+non_exp$cross <- ifelse(sign(non_exp$X2.5.) == sign(non_exp$X97.5.),
+                        "95% CI does not cross zero", 
+                        "95% CI crosses zero")
+
+## Chose for which variable you want to make the figure:
+var_choice <- "vis"
+non_exp_red <- non_exp[non_exp$variable == var_choice, ]
+
+## Graph for slopes with CIs:
+
+## Order:
+non_exp_red$identity <- factor(non_exp_red$identity, 
+                               non_exp_red$identity[order(non_exp_red$X50.)])
+
+q1 <- ggplot(data = droplevels(non_exp_red[non_exp_red$identity != "cm", ]), 
+             aes(x = identity, y = X50., color = cross))
+q2 <- geom_errorbar(aes(ymin = X2.5., ymax = X97.5.), 
+                    size = 5, 
+                    width = 0, 
+                    position = position_dodge(0.5))
+q3 <- geom_point(position = position_dodge(1), size = 8, color = "black")
+q4 <- geom_hline(yintercept = unlist(non_exp_red[non_exp_red$identity == "cm", 
+                                                 c("X2.5.", "X50.", "X97.5.")]), 
+                 size = 2, 
+                 linetype = c("dashed", "solid", "dashed"),
+                 color = "grey")
+Q <- q1 +
+     geom_hline(yintercept = 0, size = 2) +
+     q4 + q2 + q3 + 
+     xlab("") + ylab("") + theme_classic(40) + coord_flip() +
+     theme(legend.position = "top", #c(0.7, 0.1),
+           legend.title = element_blank(),
+           legend.key.size = unit(3, 'lines'),
+           legend.direction = "horizontal",
+           strip.text.y = element_blank())
+
+png(paste0("figures/non_exp_slopes_", var_choice, ".png"), 
+           10000/8, 15000/8, 
+           "px", 
+           res = 600/8)
+Q
+dev.off()
+
 ## 5. Make graphs for bpo predictions ------------------------------------------
 
 ## categorise responses:
@@ -71,7 +117,7 @@ BACI_sl$cat <- ifelse(BACI_sl$identity %in% c("cm", "alpha", "beta"),
 ## Graph for slopes with CIs:
 
 ## Order:
-O1 <- BACI_sl[BACI_sl$indicator == "BACI" & BACI_sl$treatment == "T", 
+O1 <- BACI_sl[BACI_sl$indicator == "BACI" & BACI_sl$treatment == "below", 
               c("X50.", "identity")]
 O1 <- O1$identity[order(O1$X50.)]
 BACI_sl$identity <- factor(BACI_sl$identity, levels = O1)
@@ -83,7 +129,9 @@ BACI_sl$cross <- ifelse(sign(BACI_sl$X2.5.) == sign(BACI_sl$X97.5.),
 
 g1 <- ggplot(data = droplevels(BACI_sl[BACI_sl$cat %in% c("cm", "species"), ]), 
              aes(x = identity, y = X50., 
-                 colour = treatment, fill = treatment, linetype = cross))
+                 colour = treatment, 
+                 fill = treatment,
+                 linetype = cross))
 g2 <- geom_errorbar(aes(ymin = X2.5., ymax = X97.5.), size = 3, width = 0, position = position_dodge(0.5))
 #g3 <- geom_point(position = position_dodge(1), size = 1, color = "black")
 g4 <- facet_grid(cat ~ indicator, space = "free", scales = "free")
@@ -98,14 +146,14 @@ G <- g1 +
         legend.direction = "horizontal",
         strip.text.y = element_blank())
 
-png("figures/BACI_slopes_treatment_TC.png", 20000/8, 20000/8, "px", res = 600/8)
+png("figures/BACI_slopes_BA_all_C.png", 20000/8, 20000/8, "px", res = 600/8)
 G
 dev.off()
 
 ## Graph for probabilies:
 
 ## Order:
-O2 <- BACI_sl[BACI_sl$indicator == "BACI" & BACI_sl$treatment == "T", 
+O2 <- BACI_sl[BACI_sl$indicator == "BACI" & BACI_sl$treatment == "below", 
               c("ecdf", "identity")]
 O2 <- O2$identity[order(O2$ecdf)]
 BACI_sl$identity <- factor(BACI_sl$identity, levels = O2)
@@ -115,7 +163,10 @@ BACI_sl$P_ecdf <- ifelse(BACI_sl$ecdf < 0.1 | BACI_sl$ecdf > 0.9,
                          "P < .90")
 
 p1 <- ggplot(data = BACI_sl, 
-             aes(x = identity, y = 0, colour = treatment, linetype = P_ecdf))
+             aes(x = identity, 
+                 y = 0, 
+                 colour = treatment, 
+                 linetype = P_ecdf))
 p2a <- geom_errorbar(aes(ymin = 0, ymax = BACI_sl$ecdf), 
                      position = position_dodge(0.5),
                      size = 3, 
@@ -141,7 +192,7 @@ P <- p1 +
         legend.direction = "horizontal",
         strip.text.y = element_blank())
 
-png("figures/BACI_probs_treatment_TC.png", 20000/8, 20000/8, "px", res = 600/8)
+png("figures/BACI_probs_BA_all_C.png", 20000/8, 20000/8, "px", res = 600/8)
 P
 dev.off()
 
