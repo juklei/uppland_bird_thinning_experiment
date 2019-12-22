@@ -1,7 +1,7 @@
 ## model birds in a hierarchical model
 ## 
 ## First edit: 20191218
-## Last edit: 20191218
+## Last edit: 20191220
 ##
 ## Author: Julian Klein
 
@@ -22,6 +22,7 @@ library(dclone)
 
 bpo <- read.csv("clean/bpo_double.csv")
 forest <- read.csv("clean/forest_experiment_data.csv")
+nei <- read.csv("data/non_experiment_include.csv")
 
 head(forest)
 
@@ -29,16 +30,27 @@ head(forest)
 forest <- forest[forest$experiment != "difference", ]
 forest <- forest[forest$experiment == "before", c(1,2,14,15,23:27)]
 
+## Exclude plots which are not thinning forests:
+forest <- droplevels(forest[!forest$plot %in% paste0("plot_", 110:310), ])
+
 ## Check correlations:
 cor(forest[, 3:length(forest)])
 
 ## Check order of plots in forest so its alphabetical and the same as in bpo:
 order(forest$plot)
 
+## Reduce bpo to plots present in before-experiment years:
+bpo <- merge(bpo, nei, all.x = TRUE, by = "plot")
+bpo <- bpo[!(bpo$obs_year == 2018 & bpo$include_2018 == "N"), ]
+bpo <- bpo[!(bpo$obs_year == 2019 & bpo$include_2019 == "N"), ]
+
+## Reduce bpo to plots present in forest:
+bpo <- droplevels(bpo[bpo$plot %in% levels(forest$plot) , ])
+
 ## Create model data set:
 data <- list(nobs = nrow(bpo),
              nspecies = max(as.numeric(bpo$species)),
-             nyears = 3,
+             nyears = length(unique(bpo$obs_year)),
              nsites = nlevels(bpo$plot),
              nblocks = nlevels(bpo$block),
              observed = bpo$n_obs,
@@ -49,11 +61,11 @@ data <- list(nobs = nrow(bpo),
              block = as.numeric(bpo$block),
              observer = ifelse(bpo$observer == "jkn", 0, 1),
              umbr = scale(forest$nr_skarm),
-             BA = scale(forest$BA),
+             # BA = scale(forest$BA),
              BA_spruce = scale(forest$BA_gran),
              BA_dec = scale(forest$BA_lov),
              BA_dw = scale(forest$BA_dv),
-             vis = scale(forest$laser_mean)) 
+             vis = scale(forest$laser_median)) 
 
 str(data)
 
@@ -124,14 +136,17 @@ jm <- parJagsModel(cl = cl,
                    name = "bpo_bin",
                    file = model,
                    data = data,
-                   n.adapt = 500, 
+                   n.adapt = 10000, 
                    inits = inits,
                    n.chains = 3) 
 
-parUpdate(cl = cl, object = "bpo_bin", n.iter = 500)
+parUpdate(cl = cl, object = "bpo_bin", n.iter = 250000)
 
-samples <- 500
-n.thin <- 1
+end <- Sys.time()
+end - start
+
+samples <- 1000
+n.thin <- 2
 
 zc1 <- parCodaSamples(cl = cl, model = "bpo_bin",
                       variable.names = c("mu_a_pdet", "sd_a_pdet",
@@ -224,8 +239,5 @@ non_exp$variable <- c(sort(rep(names(data)[13:length(data)], data$nspecies)),
 
 ## Export the data set for figures:
 write.csv(non_exp, "clean/non_exp.csv")
-
-end <- Sys.time()
-end - start
 
 ## -------------------------------END-------------------------------------------

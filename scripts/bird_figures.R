@@ -30,9 +30,9 @@ head(BACI_sl)
 
 colnames(forest)
 
-G1data <- melt(forest[,c(2:8,14,16)]) ## tree_nr
+# G1data <- melt(forest[,c(2:8,14,16)]) ## tree_nr
 # G1data <- melt(forest[,c(3,9:13,16)]) ## dbh
-# G1data <- melt(forest[,c(3,15,16)]) ## laser
+G1data <- melt(forest[,c(3,15,16)]) ## laser
 # G1data <- melt(forest[,c(3,17:20,16)]) ## perc
 
 G1data <- G1data[#forest$experiment != "difference" & 
@@ -55,7 +55,7 @@ G1 <- ggplot(G1summary, aes(x=treatment, y=mean, fill=experiment)) +
             legend.direction = "horizontal",
             legend.title = element_blank())
 
-png("figures/perc_tree.png", 10000/4, 7000/4, "px", res = 600/4)
+png("figures/laser.png", 10000/4, 7000/4, "px", res = 600/4)
 
 G1
 
@@ -69,7 +69,7 @@ non_exp$cross <- ifelse(sign(non_exp$X2.5.) == sign(non_exp$X97.5.),
                         "95% CI crosses zero")
 
 ## Chose for which variable you want to make the figure:
-var_choice <- "vis"
+var_choice <- "BA_dw"
 non_exp_red <- non_exp[non_exp$variable == var_choice, ]
 
 ## Graph for slopes with CIs:
