@@ -33,6 +33,7 @@ standardise <- function(x) {
 ## 3. Prepare insect data and extract acc. cover and date of highest -----------
 ##    increase and merge with forest data increase
 
+## Standardise values to get rid of observer effect:
 i_comb <- as.data.table(rbind(i_2017, i_2018, i_2019))
 i_comb$mi_stand[i_comb$obs_year == 2019] <- standardise(i_comb$mean_incr[i_comb$obs_year == 2019])
 i_comb$mi_stand[i_comb$obs_year != 2019] <- standardise(i_comb$mean_incr[i_comb$obs_year != 2019])
@@ -65,6 +66,7 @@ if_comb <- merge(i_out, forest[, c("plot", "year", "treatment", "experiment")],
 data <- list(nobs = nrow(if_comb),
              nsites = nlevels(if_comb$plot),
              cover = if_comb$acc_mi_st,
+             pm = if_comb$pm_max,
              exp = ifelse(if_comb$experiment == "before", 1, 2),
              treat = as.numeric(if_comb$treatment),
              site = as.numeric(if_comb$plot),
@@ -78,21 +80,21 @@ data <- list(nobs = nrow(if_comb),
 inits <- list(list(a_cov = matrix(1, max(data$treat), max(data$exp)),
                    sigma = 5,
                    b_2018 = 0,
-                   b_utb_2019 = 1,
+                   b_2019 = 1,
                    sigma_site = 1),
               list(a_cov = matrix(100, max(data$treat), max(data$exp)),
                    sigma = 1,
                    b_2018 = -5,
-                   b_utb_2019 = 0.1,
+                   b_2019 = 0.1,
                    sigma_site = 1),
               list(a_cov = matrix(10, max(data$treat), max(data$exp)),
                    sigma = 1,
                    b_2018 = 5,
-                   b_utb_2019 = 5,
+                   b_2019 = 5,
                    sigma_site = 10)
               )
 
-model <- "scripts/JAGS/insect_JAGS.R"
+model <- "scripts/JAGS/insect_JAGS_pm.R"
 
 jm <- jags.model(model,
                  data = data,
@@ -100,25 +102,25 @@ jm <- jags.model(model,
                  inits = inits, 
                  n.chains = 3) 
 
-burn.in <-  50000
+burn.in <-  5000
 update(jm, n.iter = burn.in) 
 
-samples <- 20000
-n.thin <- 10
+samples <- 5000
+n.thin <- 5
 
 zc <- coda.samples(jm,
                    variable.names = c("a_cov", "sigma", "sigma_site",
-                                      "b_2018", "b_utb_2019"), 
+                                      "b_2018", "b_2019"), 
                    n.iter = samples, 
                    thin = n.thin)
 
 ## Export parameter estimates:
-capture.output(summary(zc), HPDinterval(zc, prob = 0.95)) %>% 
-  write(., "results/parameters_insect_cover.txt")
+capture.output(summary(zc), HPDinterval(zc, prob = 0.89)) %>% 
+  write(., "results/parameters_insect_pm.txt")
 
 ## 5. Validate the model and export validation data and figures ----------------
 
-pdf("figures/plot_insect_cover.pdf")
+pdf("figures/plot_insect_pm.pdf")
 plot(zc); gelman.plot(zc) 
 dev.off()
 
@@ -126,7 +128,7 @@ capture.output(raftery.diag(zc),
                heidel.diag(zc), 
                gelman.diag(zc),
                cor(data.frame(combine.mcmc(zc)))) %>% 
-  write(., "results/diagnostics_insect_cover.txt")
+  write(., "results/diagnostics_insect_pm.txt")
 
 ## Produce validation metrics: 
 zj_val <- jags.samples(jm, 
@@ -173,6 +175,7 @@ zj_out <- coda.samples(jm,
                        n.iter = samples, 
                        thin = n.thin)
 
-summary(zj_out)
+capture.output(summary(zj_out), HPDinterval(zj_out, prob = 0.89)) %>% 
+  write(., "results/BACI_insect_pm.txt")
 
 ## -------------------------------END-------------------------------------------
