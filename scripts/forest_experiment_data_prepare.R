@@ -2,7 +2,7 @@
 ## to the thinning experiment
 
 ## First edit: 20191023
-## Last edit:  20191106
+## Last edit:  20200227
 
 ## Author: Julian Klein
 
@@ -35,10 +35,15 @@ f_red$perc_dv <- f_red$nr_staende_dodved/(f_red$nr_all_alive +
 
 ## Calculate BA:
 f_red$BA_gran <- (f_red$average_dbh_gran/200)^2*pi*f_red$nr_gran
+f_red$BA_gran <- f_red$BA_gran/(10^2*pi*3/10000)
 f_red$BA_lov <- (f_red$average_dbh_lov/200)^2*pi*f_red$nr_lov
+f_red$BA_lov <- f_red$BA_lov/(10^2*pi*3/10000)
 f_red$BA_tall <- (f_red$average_dbh_tall/200)^2*pi*f_red$nr_tall
+f_red$BA_tall <- f_red$BA_tall/(10^2*pi*3/10000)
 f_red$BA_dv <- (f_red$average_dbh_staende_dodved/200)^2*pi*f_red$nr_staende_dodved
+f_red$BA_dv <- f_red$BA_dv/(10^2*pi*3/10000)
 f_red$BA <- (f_red$average_dbh_all_alive/200)^2*pi*f_red$nr_all_alive
+f_red$BA <- f_red$BA/(10^2*pi*3/10000)
 
 ## Calculate differences:
 
