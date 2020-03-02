@@ -184,7 +184,7 @@ P <- p1 +
         legend.spacing.y = unit(0, "lines"),
         strip.text.y = element_blank())
 
-png("figures/BACI_probs_TC_2.png", 21000/8, 24000/8, "px", res = 600/8)
+png("figures/BACI_probs_TC_2.png", 21000/8, 25000/8, "px", res = 600/8)
 P
 dev.off()
 

@@ -14,6 +14,7 @@ require(ggplot2)
 require(data.table)
 require(dplyr)
 require(nlme)
+require(reshape)
 
 ## 2. Load and explore data ----------------------------------------------------
 
@@ -119,15 +120,15 @@ G1 <- ggplot(gg_data, aes(x = X1, y = Estimate, color = X1)) +
                     ymax = Estimate + 1.96*Std.Error),
                 size = 5, 
                 width = 0) +
-  geom_point(size = 6, color = "black") +
-  facet_grid(L1 ~ exp, scales = "free") +
+  geom_point(size = 7, color = "black") +
+  facet_grid(L1 ~ exp, scales = "free", space = "free_x") +
   xlab("") + ylab("") +
   scale_colour_manual(values = c("grey", "#00AFBB", "#E7B800", "#FC4E07")) +
   theme_light(30) + 
   theme(legend.position = "none",
         axis.text.x = element_text(angle = 45, hjust = 1))
 
-png("figures/forest_var.png", 5000/8, 15000/8, "px", res = 600/8)
+png("figures/forest_var.png", 4000/8, 15000/8, "px", res = 600/8)
 G1
 dev.off()
 

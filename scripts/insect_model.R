@@ -47,9 +47,9 @@ rm(temp)
 i_comb <- i_comb[i_comb$post_march >= pm_limits[1] & 
                  i_comb$post_march <= pm_limits[2], ]
 
-## Calculte sum of increment per plot and year:
-i_out <- i_comb[, list("acc_mi" = sum(mean_incr),
-                       "acc_mi_st" = sum(mi_stand),
+## Calculte mean increment per plot and year:
+i_out <- i_comb[, list("acc_mi" = mean(mean_incr),
+                       "acc_mi_st" = mean(mi_stand),
                        "pm_max" = mean(post_march[which(mean_incr == 
                                                         max(mean_incr))])),
                 by = c("plot", "obs_year")]
@@ -94,7 +94,7 @@ inits <- list(list(a_cov = matrix(1, max(data$treat), max(data$exp)),
                    sigma_site = 10)
               )
 
-model <- "scripts/JAGS/insect_JAGS_pm.R"
+model <- "scripts/JAGS/insect_JAGS_cover.R"
 
 jm <- jags.model(model,
                  data = data,
@@ -115,12 +115,12 @@ zc <- coda.samples(jm,
                    thin = n.thin)
 
 ## Export parameter estimates:
-capture.output(summary(zc), HPDinterval(zc, prob = 0.89)) %>% 
-  write(., "results/parameters_insect_pm.txt")
+capture.output(summary(zc), HPDinterval(zc, prob = 0.95)) %>% 
+  write(., "results/parameters_insect_cover.txt")
 
 ## 5. Validate the model and export validation data and figures ----------------
 
-pdf("figures/plot_insect_pm.pdf")
+pdf("figures/plot_insect_cover.pdf")
 plot(zc); gelman.plot(zc) 
 dev.off()
 
@@ -128,7 +128,7 @@ capture.output(raftery.diag(zc),
                heidel.diag(zc), 
                gelman.diag(zc),
                cor(data.frame(combine.mcmc(zc)))) %>% 
-  write(., "results/diagnostics_insect_pm.txt")
+  write(., "results/diagnostics_insect_cover.txt")
 
 ## Produce validation metrics: 
 zj_val <- jags.samples(jm, 
@@ -175,7 +175,20 @@ zj_out <- coda.samples(jm,
                        n.iter = samples, 
                        thin = n.thin)
 
-capture.output(summary(zj_out), HPDinterval(zj_out, prob = 0.89)) %>% 
-  write(., "results/BACI_insect_pm.txt")
+capture.output(summary(zj_out), HPDinterval(zj_out, prob = 0.95)) %>% 
+  write(., "results/BACI_insect_cover.txt")
+
+## Export for graphing:
+
+zj_out_exp <- as.data.frame(summary(zj_out)$quantiles)
+zj_out_exp <- cbind(zj_out_exp, 
+                    "treatment" = levels(if_comb$treatment)[-data$ref])
+
+ind_names <- strsplit(row.names(zj_out_exp), split = "[[]")
+ind_names <- sapply(ind_names, "[", 1)
+
+zj_out_exp <- cbind(zj_out_exp, "indicators" = ind_names)
+
+write.csv(zj_out_exp, "clean/BACI_cover_graphing.csv")
 
 ## -------------------------------END-------------------------------------------

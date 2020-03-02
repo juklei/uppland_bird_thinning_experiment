@@ -22,7 +22,7 @@ model{
     ## Deterministic model:
     mu[i] <- a_cov[treat[i],exp[i]] + #e_site[site[i]] +
              b_2018*year_2018[i] +
-             b_utb_2019*year_2019[i]
+             b_2019*year_2019[i]
   }
   
   # for(j in 1:nsites){e_site[j] ~ dnorm(0, 1/sigma_site^2)}
@@ -36,7 +36,7 @@ model{
   }}
   sigma ~ dgamma(0.001, 0.001)
   b_2018 ~ dnorm(0, 0.001)
-  b_utb_2019 ~ dnorm(0, 0.001)
+  b_2019 ~ dnorm(0, 0.001)
   # sigma_site ~ dgamma(0.1, 0.1)
   
   ## Model validation: ---------------------------------------------------------
