@@ -36,9 +36,12 @@ BACI_sl <- merge(BACI_sl,
 levels(BACI_sl$treatment) <- c("Complete retention", 
                                "Conventional thinning", 
                                "Understory retention thinning")
+BACI_sl$treatment <- factor(BACI_sl$treatment, 
+                            levels = c("Complete retention", 
+                                       "Understory retention thinning",
+                                       "Conventional thinning"))
 levels(BACI_sl$indicator)[2:3] <- c("CI-contribution", "CI-divergence")
 head(BACI_sl)
-
 
 ## 3. Make graphs for the non-experimental plots for forest variables ----------
 
@@ -165,11 +168,11 @@ p2b <- geom_errorbar(aes(ymin = BACI_sl$ecdf - 1, ymax = 0),
 P <- p1 +
   geom_hline(yintercept = 0, size = 2) + 
   # scale_linetype_manual(values=c("solid", "dotted")) +
-  scale_y_continuous(breaks = c(-0.95, -0.5, 0, 0.5, 0.95),
-                     labels = c(".95", ".5", "0", "", ""),
+  scale_y_continuous(breaks = c(-1, -0.5, 0, 0.5, 1),
+                     labels = c("1", ".5", "0", "", ""),
                      sec.axis = dup_axis(
                        name = "Probability that the indicator is positive",
-                       labels = c("", "", "0", ".5", ".95"))) +
+                       labels = c("", "", "0", ".5", "1.00"))) +
   p2a + p2b + g4 +
   xlab("") + ylab("Probability that the indicator is negative") + 
   coord_flip() +

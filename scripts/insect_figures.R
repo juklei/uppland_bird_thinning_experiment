@@ -26,6 +26,10 @@ i_comb <- rbind(cover, pm)
 levels(i_comb$treatment) <- c("Complete retention", 
                                "Conventional thinning", 
                                "Understory retention thinning")
+i_comb$treatment <- factor(i_comb$treatment, 
+                           levels = c("Complete retention", 
+                                      "Understory retention thinning",
+                                      "Conventional thinning"))
 levels(i_comb$indicator)[2:3] <- c("CI-contribution", "CI-divergence")
 head(i_comb)
 

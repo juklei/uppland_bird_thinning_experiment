@@ -109,9 +109,9 @@ colnames(gg_data)[5] <- "Std.Error"
 ## Adjust level order:
 gg_data$X1 <- factor(gg_data$X1, 
                        levels = c("Control",
-                                  "Complete retention",
-                                  "Conventional thinning", 
-                                  "Understory retention thinning"))
+                                  "Complete retention", 
+                                  "Understory retention thinning",
+                                  "Conventional thinning"))
 gg_data$exp <- factor(gg_data$exp, levels = c("Before", "After"))
 
 ## Make graph:
