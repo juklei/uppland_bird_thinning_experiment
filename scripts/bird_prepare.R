@@ -19,7 +19,7 @@ dir("data")
 
 OCC <- read.csv("data/occ_double_2017to2019.csv")
 OCC2 <- read.csv("data/occ_2016to2019.csv")
-ldm <- read.csv("data/long_distance_migrants.csv")
+ldm <- as.vector(na.omit(read.csv("data/bird_data.csv")$ldm))
 
 head(occ); head(ldm)
 
@@ -78,13 +78,13 @@ b_occ$visit_num[b_occ$visit == "fourth"] <- 4
 b_occ$visit_num[b_occ$visit == "fifth"] <- 5
 
 b_occ <- as.data.table(b_occ)
-b_occ[, "n_visits" := ifelse(.SD$species %in% ldm$species, 
+b_occ[, "n_visits" := ifelse(.SD$species %in% ldm, 
                              max(visit_num) - 2, 
                              max(visit_num)),
       by = c("plot", "obs_year")]
 
 ## Has the ldm species been seen in block i during the second visit?
-T1 <- b_occ[b_occ$visit == "second" & b_occ$species %in% ldm$species, 
+T1 <- b_occ[b_occ$visit == "second" & b_occ$species %in% ldm, 
             list("observable_second" = ifelse(sum(observed) > 0, 1, 0),
                  "plot" = plot), 
             by = c("obs_year", "block", "species")]
@@ -179,7 +179,7 @@ b_occ <- b_occ[, F1(.SD), by = c("plot", "visit", "sampling_period", "obs_year")
 ## Remove ldm non-observations from the first & second visit that have a 
 ## dp_march smaller than the arrival date (e.g. bird has not arrived yet):
   
-b_occ <- b_occ[!(b_occ$species %in% ldm$species & 
+b_occ <- b_occ[!(b_occ$species %in% ldm & 
                    b_occ$visit %in% c("first", "second") & 
                    b_occ$dp_march < b_occ$min_dpm), ]
 
