@@ -40,9 +40,9 @@ data <- list(nobs = nrow(bpo),
              site = as.numeric(bpo$plot),
              observer = ifelse(bpo$observer == "jkn", 0, 1),
              exp = acast(forest, year ~ plot, value.var = "exp_num"),
-             treat = acast(forest, plot ~ ., 
-                           value.var = "treatment_num", 
-                           fun.aggregate = mean),
+             treat = acast(forest, 
+                           year ~ plot, 
+                           value.var = "treatment_num")[1, ],
              eval = c(1, 2, 4), ## Check: levels(forest$treatment)
              ref = 3, ## Check: levels(forest$treatment)
              insect = bird_data$numeric[bird_data$food == "insectivore"],
@@ -112,8 +112,8 @@ jm <- parJagsModel(cl = cl,
 
 parUpdate(cl = cl, object = "bpo_bin", n.iter = 10000)
 
-samples <- 10000
-n.thin <- 10
+samples <- 50000
+n.thin <- 50
 
 zc1 <- parCodaSamples(cl = cl, model = "bpo_bin",
                       variable.names = c("mu_a_pdet", "sd_a_pdet",
@@ -127,9 +127,9 @@ zc1 <- parCodaSamples(cl = cl, model = "bpo_bin",
                                          "u_sd_block"),
                       n.iter = samples, thin = n.thin)
 
-zc2 <- parCodaSamples(cl = cl, model = "bpo_bin",
-                      variable.names = c("a_pdet", "a_pocc"),
-                      n.iter = samples, thin = n.thin)
+# zc2 <- parCodaSamples(cl = cl, model = "bpo_bin",
+#                       variable.names = c("a_pdet", "a_pocc"),
+#                       n.iter = samples, thin = n.thin)
 
 ## Export parameter estimates:
 capture.output(summary(zc1), HPDinterval(zc1, prob = 0.95)) %>% 

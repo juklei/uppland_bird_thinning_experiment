@@ -103,7 +103,7 @@ P <- p1 +
                      labels = c("1", ".5", "0", "", ""),
                      sec.axis = dup_axis(
                        name = "Probability that the indicator is positive",
-                       labels = c("", "", "0", ".5", "1.00"))) +
+                       labels = c("", "", "0", ".5", "1"))) +
   p2a + p2b + g4 +
   xlab("") + ylab("Probability that the indicator is negative") + 
   coord_flip() +
@@ -137,13 +137,38 @@ BACI_gl$cat[BACI_gl$identity %in% c("bark",
                                     "grd_cpy")] <- "Foraging"
 BACI_gl$cat[BACI_gl$identity %in% c("hole", "n_cpy", "n_grd")] <- "Nesting"
 BACI_gl$cat[BACI_gl$identity %in% c("insect", "omni")] <- "Food"
-BACI_gl$cat[BACI_gl$identity %in% c("bd", "r")] <- "Biodiversity"
-levels(BACI_gl$identity) <- c("Bark feeder", "Beta diversity", 
+BACI_gl$cat[BACI_gl$identity %in% c("bd", "r")] <- "Diversity"
+levels(BACI_gl$identity) <- c("Bark feeder", "Beta (negJaccard)", 
                               "Canopy feeder", "Ground feeder", 
                               "Ground/Canopy feeder", "Hole nester", 
                               "Insectivore", "Canopy nester", "Ground nester", 
-                              "Omnivore", "Alpha diversity")
+                              "Omnivore", "Alpha")
 head(BACI_gl)
+
+## Make figure:
+h1 <- ggplot(data = droplevels(BACI_gl[BACI_gl$cat != "Diversity", ]), 
+             aes(x = identity, y = X50., colour = treatment, fill = treatment))
+h2 <- geom_errorbar(aes(ymin = X2.5., ymax = X97.5.), 
+                    size = 5, 
+                    width = 0, 
+                    position = position_dodge(0.5))
+h3 <- geom_point(position = position_dodge(0.5), size = 6.5, colour = "black")
+h4 <- facet_grid(cat ~ indicator, space = "free", scales = "free")
+H <- h1 +
+  geom_hline(yintercept = 0, size = 2) + 
+  h2 + h3 + h4 +
+  xlab("") + ylab("") + coord_flip() +
+  scale_colour_manual(values = c("#00AFBB", "#E7B800", "#FC4E07")) +
+  theme_light(58) +
+  theme(legend.position = "top", 
+        legend.title = element_blank(),
+        legend.key.size = unit(3, 'lines'),
+        legend.box = "vertical",
+        legend.spacing.y = unit(0, "lines"))
+
+png("figures/BACI_gl_slopes.png", 21000/8, 13000/8, "px", res = 600/8)
+H
+dev.off()
 
 ## Graph for probabilies:
 
@@ -157,15 +182,14 @@ q2b <- geom_errorbar(aes(ymin = BACI_gl$ecdf - 1, ymax = 0),
                      position = position_dodge(0.5),
                      size = 5,                  
                      width = 0)
-q3 <- facet_grid(cat ~ indicator, space = "free", scales = "free")
 Q <- q1 +
   geom_hline(yintercept = 0, size = 2) +
   scale_y_continuous(breaks = c(-1, -0.5, 0, 0.5, 1),
                      labels = c("1", ".5", "0", "", ""),
                      sec.axis = dup_axis(
                        name = "Probability that the indicator is positive",
-                       labels = c("", "", "0", ".5", "1.00"))) +
-  q2a + q2b + q3 +
+                       labels = c("", "", "0", ".5", "1"))) +
+  q2a + q2b + h4 +
   xlab("") + ylab("Probability that the indicator is negative") + 
   coord_flip() +
   scale_colour_manual(values = c("#00AFBB", "#E7B800", "#FC4E07")) +
@@ -176,7 +200,7 @@ Q <- q1 +
         legend.box = "vertical",
         legend.spacing.y = unit(0, "lines"))
 
-png("figures/BACI_gl_probs.png", 21000/8, 18000/8, "px", res = 600/8)
+png("figures/BACI_gl_probs.png", 21000/8, 16000/8, "px", res = 600/8)
 Q
 dev.off()
 

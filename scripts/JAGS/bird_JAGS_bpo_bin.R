@@ -7,7 +7,7 @@
 
 model{
   
-  ## Likelihood: ---------------------------------------------------------------
+  ## 1. Likelihood: ------------------------------------------------------------
   
   ## Observational model:
   for(i in 1:nobs){
@@ -30,7 +30,7 @@ model{
                               b_pocc_2019[k]*ifelse(y==3,1,0) 
   }}}
   
-  ## Priors: -------------------------------------------------------------------
+  ## 2. Priors: ----------------------------------------------------------------
   
   ## Observational model:
   for(k in 1:max(species)){
@@ -74,7 +74,7 @@ model{
   mu_b_pocc_2019 ~ dnorm(0, 0.1)
   sd_b_pocc_2019 ~ dt(0, pow(2.5,-2), 1)T(0,)
 
-  # ## Model validation: ---------------------------------------------------------
+  # ## 3. Model validation: ------------------------------------------------------
   # 
   # ## Bayesian p-value:
   # mean_obs <- mean(observed[])
@@ -98,7 +98,7 @@ model{
   # fit_sim <- sum(sq_sim[])
   # p_fit <- step(fit_sim - fit)
 
-  ## Posteriors: ---------------------------------------------------------------
+  ## 4. Posteriors: ------------------------------------------------------------
 
   ## BACI indicators for mean community response:
   for(m in 1:max(treat)){ ## Backtransform to logit
