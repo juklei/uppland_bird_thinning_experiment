@@ -1,7 +1,7 @@
 ## model birds in a hierarchical model
 ## 
 ## First edit: 20191201
-## Last edit: 20191212
+## Last edit: 20200327
 ##
 ## Author: Julian Klein
 
@@ -53,7 +53,13 @@ data <- list(nobs = nrow(bpo),
              grd_cpy = bird_data$numeric[bird_data$foraging == "ground/canopy"],
              n_grd = bird_data$numeric[bird_data$nesting == "ground"],
              n_cpy = bird_data$numeric[bird_data$nesting == "canopy"],
-             hole = bird_data$numeric[bird_data$nesting == "hole"]) 
+             hole = bird_data$numeric[bird_data$nesting == "hole"],
+             ft_cplx = bird_data$numeric[bird_data$forest.type == "complex"],
+             ft_dec = bird_data$numeric[bird_data$forest.type == "deciduous"],
+             ft_triv = bird_data$numeric[bird_data$forest.type == "trivial"],
+             trd_pos = bird_data$numeric[bird_data$trend == "positive"],
+             trd_neg = bird_data$numeric[bird_data$trend == "negative"],
+             trd_non = bird_data$numeric[bird_data$trend == "none"]) 
 
 str(data)
 
@@ -110,10 +116,10 @@ jm <- parJagsModel(cl = cl,
                    inits = inits,
                    n.chains = 3) 
 
-parUpdate(cl = cl, object = "bpo_bin", n.iter = 10000)
+parUpdate(cl = cl, object = "bpo_bin", n.iter = 90000)
 
-samples <- 50000
-n.thin <- 50
+samples <- 100000
+n.thin <- 100
 
 zc1 <- parCodaSamples(cl = cl, model = "bpo_bin",
                       variable.names = c("mu_a_pdet", "sd_a_pdet",
@@ -231,7 +237,13 @@ zc6 <- parCodaSamples(cl = cl, model = "bpo_bin",
                         "CI_div_grd_cpy", "CI_ctr_grd_cpy", "BACI_grd_cpy",
                         "CI_div_n_grd", "CI_ctr_n_grd", "BACI_n_grd",
                         "CI_div_n_cpy", "CI_ctr_n_cpy", "BACI_n_cpy",
-                        "CI_div_hole", "CI_ctr_hole", "BACI_hole"),
+                        "CI_div_hole", "CI_ctr_hole", "BACI_hole",
+                        "CI_div_ft_cplx", "CI_ctr_ft_cplx", "BACI_ft_cplx",
+                        "CI_div_ft_dec", "CI_ctr_ft_dec", "BACI_ft_dec",
+                        "CI_div_ft_triv", "CI_ctr_ft_triv", "BACI_ft_triv",
+                        "CI_div_trd_pos", "CI_ctr_trd_pos", "BACI_trd_pos",
+                        "CI_div_trd_neg", "CI_ctr_trd_neg", "BACI_trd_neg",
+                        "CI_div_trd_non", "CI_ctr_trd_non", "BACI_trd_non"),
                       n.iter = samples,
                       thin = n.thin)
 
@@ -241,14 +253,14 @@ zc6 <- combine.mcmc(zc6)
 ## Extract slopes and add ecdf and guild names:
 BACI_gl <- as.data.frame(summary(zc6)$quantiles[, c("2.5%","50%","97.5%")])
 BACI_gl$ecdf <- as.vector(apply(zc6, 2, function(x) 1-ecdf(x)(0)))
-guild_names <- names(data)[(length(data) - 8):length(data)]
+guild_names <- names(data)[(length(data) - 14):length(data)]
 BACI_gl$identity <- sort(rep(c(guild_names, "r", "bd"), length(data$eval)))
 
 ## Add treatment*BACI indicator categorisation:
 BACI_gl$treatment <- levels(forest$treatment)[data$eval]
-BACI_gl$indicator <- c(rep("BACI", length(data$eval)*11),
-                       rep("CI_ctr", length(data$eval)*11),
-                       rep("CI_div", length(data$eval)*11))
+BACI_gl$indicator <- c(rep("BACI", length(data$eval)*17),
+                       rep("CI_ctr", length(data$eval)*17),
+                       rep("CI_div", length(data$eval)*17))
 
 ## Export the data set for figures:
 write.csv(BACI_gl, "clean/BACI_gl.csv")

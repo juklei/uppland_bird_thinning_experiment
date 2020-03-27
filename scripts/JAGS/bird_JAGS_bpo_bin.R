@@ -172,6 +172,32 @@ model{
     CI_ctr_hole[o] <- mean(CI_ctr_sl[o,hole])
     BACI_hole[o] <- mean(BACI_sl[o,hole])
   }
+  
+  ## BACI indicators for forest type response:
+  for(o in eval){
+    CI_div_ft_cplx[o] <- mean(CI_div_sl[o,ft_cplx])
+    CI_ctr_ft_cplx[o] <- mean(CI_ctr_sl[o,ft_cplx])
+    BACI_ft_cplx[o] <- mean(BACI_sl[o,ft_cplx])
+    CI_div_ft_dec[o] <- mean(CI_div_sl[o,ft_dec])
+    CI_ctr_ft_dec[o] <- mean(CI_ctr_sl[o,ft_dec])
+    BACI_ft_dec[o] <- mean(BACI_sl[o,ft_dec])
+    CI_div_ft_triv[o] <- mean(CI_div_sl[o,ft_triv])
+    CI_ctr_ft_triv[o] <- mean(CI_ctr_sl[o,ft_triv])
+    BACI_ft_triv[o] <- mean(BACI_sl[o,ft_triv])
+  }
+  
+  ## BACI indicators for trend type response:
+  for(o in eval){
+    CI_div_trd_pos[o] <- mean(CI_div_sl[o,trd_pos])
+    CI_ctr_trd_pos[o] <- mean(CI_ctr_sl[o,trd_pos])
+    BACI_trd_pos[o] <- mean(BACI_sl[o,trd_pos])
+    CI_div_trd_neg[o] <- mean(CI_div_sl[o,trd_neg])
+    CI_ctr_trd_neg[o] <- mean(CI_ctr_sl[o,trd_neg])
+    BACI_trd_neg[o] <- mean(BACI_sl[o,trd_neg])
+    CI_div_trd_non[o] <- mean(CI_div_sl[o,trd_non])
+    CI_ctr_trd_non[o] <- mean(CI_ctr_sl[o,trd_non])
+    BACI_trd_non[o] <- mean(BACI_sl[o,trd_non])
+  }
 
   ## BACI indicators for species richness:
   ## Predict richness per treatment*experiment combination:

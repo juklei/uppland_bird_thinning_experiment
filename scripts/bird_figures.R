@@ -62,7 +62,7 @@ g2 <- geom_errorbar(aes(ymin = X2.5., ymax = X97.5.),
 g3 <- geom_point(position = position_dodge(0.5), size = 4, colour = "black")
 g4 <- facet_grid(cat ~ indicator, space = "free", scales = "free")
 G <- g1 +
-  geom_hline(yintercept = 0, size = 2) + 
+  geom_hline(yintercept = 0, size = 2, color = "darkgrey") + 
   g2 + g4 + g3 +
   xlab("") + ylab("") + coord_flip() +
   scale_colour_manual(values = c("#00AFBB", "#E7B800", "#FC4E07")) +
@@ -98,7 +98,7 @@ p2b <- geom_errorbar(aes(ymin = BACI_sl$ecdf - 1, ymax = 0),
                      size = 3.1,                  
                      width = 0)
 P <- p1 +
-  geom_hline(yintercept = 0, size = 2) +
+  geom_hline(yintercept = 0, size = 2, color = "darkgrey") +
   scale_y_continuous(breaks = c(-1, -0.5, 0, 0.5, 1),
                      labels = c("1", ".5", "0", "", ""),
                      sec.axis = dup_axis(
@@ -138,24 +138,27 @@ BACI_gl$cat[BACI_gl$identity %in% c("bark",
 BACI_gl$cat[BACI_gl$identity %in% c("hole", "n_cpy", "n_grd")] <- "Nesting"
 BACI_gl$cat[BACI_gl$identity %in% c("insect", "omni")] <- "Food"
 BACI_gl$cat[BACI_gl$identity %in% c("bd", "r")] <- "Diversity"
+BACI_gl$cat[BACI_gl$identity %in% c("ft_cplx", "ft_dec", "ft_triv")] <- "Forest"
+BACI_gl$cat[BACI_gl$identity %in% c("trd_pos", "trd_neg", "trd_non")] <- "Trend"
 levels(BACI_gl$identity) <- c("Bark feeder", "Beta (negJaccard)", 
-                              "Canopy feeder", "Ground feeder", 
-                              "Ground/Canopy feeder", "Hole nester", 
-                              "Insectivore", "Canopy nester", "Ground nester", 
-                              "Omnivore", "Alpha")
+                              "Canopy feeder", "Ground feeder", "Complex", 
+                              "Deciduous", "Trivial", "Ground/Canopy feeder", 
+                              "Hole nester", "Insectivore", "Canopy nester", 
+                              "Ground nester", "Omnivore", "Alpha", "Negative", 
+                              "Stable", "Positive")
 head(BACI_gl)
 
 ## Make figure:
 h1 <- ggplot(data = droplevels(BACI_gl[BACI_gl$cat != "Diversity", ]), 
              aes(x = identity, y = X50., colour = treatment, fill = treatment))
 h2 <- geom_errorbar(aes(ymin = X2.5., ymax = X97.5.), 
-                    size = 5, 
+                    size = 4, 
                     width = 0, 
                     position = position_dodge(0.5))
 h3 <- geom_point(position = position_dodge(0.5), size = 6.5, colour = "black")
 h4 <- facet_grid(cat ~ indicator, space = "free", scales = "free")
 H <- h1 +
-  geom_hline(yintercept = 0, size = 2) + 
+  geom_hline(yintercept = 0, size = 2, color = "darkgrey") + 
   h2 + h3 + h4 +
   xlab("") + ylab("") + coord_flip() +
   scale_colour_manual(values = c("#00AFBB", "#E7B800", "#FC4E07")) +
@@ -166,7 +169,7 @@ H <- h1 +
         legend.box = "vertical",
         legend.spacing.y = unit(0, "lines"))
 
-png("figures/BACI_gl_slopes.png", 21000/8, 13000/8, "px", res = 600/8)
+png("figures/BACI_gl_slopes.png", 21000/8, 19000/8, "px", res = 600/8)
 H
 dev.off()
 
@@ -176,14 +179,14 @@ dev.off()
 q1 <- ggplot(data = BACI_gl, aes(x = identity, y = 0, colour = treatment))
 q2a <- geom_errorbar(aes(ymin = 0, ymax = BACI_gl$ecdf), 
                      position = position_dodge(0.5),
-                     size = 5, 
+                     size = 4, 
                      width = 0)
 q2b <- geom_errorbar(aes(ymin = BACI_gl$ecdf - 1, ymax = 0), 
                      position = position_dodge(0.5),
-                     size = 5,                  
+                     size = 4,                  
                      width = 0)
 Q <- q1 +
-  geom_hline(yintercept = 0, size = 2) +
+  geom_hline(yintercept = 0, size = 2, color = "darkgrey") +
   scale_y_continuous(breaks = c(-1, -0.5, 0, 0.5, 1),
                      labels = c("1", ".5", "0", "", ""),
                      sec.axis = dup_axis(
@@ -200,7 +203,7 @@ Q <- q1 +
         legend.box = "vertical",
         legend.spacing.y = unit(0, "lines"))
 
-png("figures/BACI_gl_probs.png", 21000/8, 16000/8, "px", res = 600/8)
+png("figures/BACI_gl_probs.png", 21000/8, 21000/8, "px", res = 600/8)
 Q
 dev.off()
 
