@@ -112,11 +112,11 @@ jm <- parJagsModel(cl = cl,
                    name = "bpo_bin",
                    file = model,
                    data = data,
-                   n.adapt = 10000, 
+                   n.adapt = 50000, 
                    inits = inits,
                    n.chains = 3) 
 
-parUpdate(cl = cl, object = "bpo_bin", n.iter = 90000)
+parUpdate(cl = cl, object = "bpo_bin", n.iter = 450000)
 
 samples <- 100000
 n.thin <- 100

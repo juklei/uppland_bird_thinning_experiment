@@ -46,7 +46,8 @@ g2 <- geom_errorbar(aes(ymin = X2.5., ymax = X97.5.),
 g3 <- geom_point(aes(fill = treatment), position = position_dodge(0.5), size = 4, colour = "black")
 g4 <- facet_grid(. ~ indicator, scales = "free")
 
-G <- g1 + geom_hline(yintercept = 0, size = 2) + g2 + g3 + g4 +
+G <- g1 + geom_hline(yintercept = 0, size = 1, color = "darkgrey") + 
+  g2 + g3 + g4 +
   xlab("") + ylab("") + coord_flip() +
   scale_colour_manual(values = c("#00AFBB", "#E7B800", "#FC4E07")) +
   theme_light(30) +
@@ -61,7 +62,8 @@ G <- g1 + geom_hline(yintercept = 0, size = 2) + g2 + g3 + g4 +
 p1 <- ggplot(data = i_comb[10:18, ],
              aes(x = response, y = X50., colour = treatment))
 
-P <- p1 + geom_hline(yintercept = 0, size = 2) + g2 + g3 + g4 +
+P <- p1 + geom_hline(yintercept = 0, size = 1, color = "darkgrey") + 
+  g2 + g3 + g4 +
   xlab("") + ylab("") + coord_flip() +
   scale_colour_manual(values = c("#00AFBB", "#E7B800", "#FC4E07")) +
   theme_light(30) +

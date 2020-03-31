@@ -2,7 +2,7 @@
 ## in the BACI experiment
 ##
 ## First edit: 20200218
-## Last edit: 20200219
+## Last edit: 20200331
 ##
 ## Author: Julian Klein
 
@@ -24,19 +24,10 @@ i_2018 <- read.csv("data/insects_2018.csv")
 i_2019 <- read.csv("data/insects_2019.csv")
 forest <- read.csv("clean/forest_experiment_data_JAGS.csv")
 
-## This function standardises values to between 0 and 1
-standardise <- function(x) {
-  (x - min(x[], na.rm = T)) / (max(x[], na.rm = T) - min(x[], na.rm = T))
-}
-
-
 ## 3. Prepare insect data and extract acc. cover and date of highest -----------
 ##    increase and merge with forest data increase
 
-## Standardise values to get rid of observer effect:
 i_comb <- as.data.table(rbind(i_2017, i_2018, i_2019))
-i_comb$mi_stand[i_comb$obs_year == 2019] <- standardise(i_comb$mean_incr[i_comb$obs_year == 2019])
-i_comb$mi_stand[i_comb$obs_year != 2019] <- standardise(i_comb$mean_incr[i_comb$obs_year != 2019])
 
 ## Include only days which are covered across all plots (exclude 120):
 temp <- i_comb[i_comb$plot != "plot_120",
@@ -49,7 +40,6 @@ i_comb <- i_comb[i_comb$post_march >= pm_limits[1] &
 
 ## Calculte mean increment per plot and year:
 i_out <- i_comb[, list("acc_mi" = mean(mean_incr),
-                       "acc_mi_st" = mean(mi_stand),
                        "pm_max" = mean(post_march[which(mean_incr == 
                                                         max(mean_incr))])),
                 by = c("plot", "obs_year")]
@@ -65,8 +55,9 @@ if_comb <- merge(i_out, forest[, c("plot", "year", "treatment", "experiment")],
 ## Create model data set:
 data <- list(nobs = nrow(if_comb),
              nsites = nlevels(if_comb$plot),
-             cover = if_comb$acc_mi_st,
+             cover = if_comb$acc_mi*100,
              pm = if_comb$pm_max,
+             year = if_comb$obs_year-2016,
              exp = ifelse(if_comb$experiment == "before", 1, 2),
              treat = as.numeric(if_comb$treatment),
              site = as.numeric(if_comb$plot),
@@ -76,22 +67,21 @@ data <- list(nobs = nrow(if_comb),
              ref = 3) 
 
 ## Create inits:
-
 inits <- list(list(a_cov = matrix(1, max(data$treat), max(data$exp)),
-                   sigma = 5,
-                   b_2018 = 0,
+                   sigma = 1,
+                   b_2018 = 1,
                    b_2019 = 1,
                    sigma_site = 1),
-              list(a_cov = matrix(100, max(data$treat), max(data$exp)),
-                   sigma = 1,
-                   b_2018 = -5,
-                   b_2019 = 0.1,
+              list(a_cov = matrix(1e-3, max(data$treat), max(data$exp)),
+                   sigma = 1e-3,
+                   b_2018 = -1,
+                   b_2019 = -1,
                    sigma_site = 1),
-              list(a_cov = matrix(10, max(data$treat), max(data$exp)),
-                   sigma = 1,
-                   b_2018 = 5,
-                   b_2019 = 5,
-                   sigma_site = 10)
+              list(a_cov = matrix(0.5, max(data$treat), max(data$exp)),
+                   sigma = 0.5,
+                   b_2018 = 0,
+                   b_2019 = 0,
+                   sigma_site = 1)
               )
 
 model <- "scripts/JAGS/insect_JAGS_cover.R"
@@ -102,10 +92,10 @@ jm <- jags.model(model,
                  inits = inits, 
                  n.chains = 3) 
 
-burn.in <-  5000
+burn.in <-  50000
 update(jm, n.iter = burn.in) 
 
-samples <- 5000
+samples <- 10000
 n.thin <- 5
 
 zc <- coda.samples(jm,

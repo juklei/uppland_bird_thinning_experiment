@@ -3,7 +3,7 @@
 ## Response: accumulated cover
 ##
 ## First edit: 2020218
-## Last edit: 2020219
+## Last edit: 2020331
 ##
 ## Author: Julian Klein
 
@@ -17,8 +17,8 @@ model{
     cover[i] ~ dgamma(shape[i], rate[i])
     sim[i] ~ dgamma(shape[i], rate[i])
     ## Moment matching:
-    shape[i] <- max(0.00001, mu[i]^2/sigma^2)
-    rate[i] <- max(0.00001, mu[i]/sigma^2)
+    shape[i] <- max(1e-6, mu[i]^2/sigma^2)
+    rate[i] <- max(1e-6, mu[i]/sigma^2)
     ## Deterministic model:
     mu[i] <- a_cov[treat[i],exp[i]] + #e_site[site[i]] +
              b_2018*year_2018[i] +
@@ -32,11 +32,12 @@ model{
   ## Process model:
   for(m in 1:max(treat)){
     for(n in 1:max(exp)){
-      a_cov[m,n] ~ dgamma(0.001, 0.001)
-  }}
-  sigma ~ dgamma(0.001, 0.001)
-  b_2018 ~ dnorm(0, 0.001)
-  b_2019 ~ dnorm(0, 0.001)
+      a_cov[m,n] ~ dgamma(1, 1)
+    }}
+  # for(k in 1:max(year)){sigma[k] ~ dunif(0, 1)}
+  sigma ~ dgamma(1, 1)
+  b_2018 ~ dnorm(0, 1)
+  b_2019 ~ dnorm(0, 1)
   # sigma_site ~ dgamma(0.1, 0.1)
   
   ## Model validation: ---------------------------------------------------------
