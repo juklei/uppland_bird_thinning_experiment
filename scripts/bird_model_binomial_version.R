@@ -18,11 +18,32 @@ library(reshape2)
 library(parallel)
 library(dclone)
 
-## 2. Load and prepare data for analysis ---------------------------------------
+## 2. Load data ----------------------------------------------------------------
 
+occ <- read.csv("data/occ_2016to2019.csv")
 bpo <- read.csv("clean/bpo_double.csv")
 forest <- read.csv("clean/forest_experiment_data_JAGS.csv")
 bird_data <- read.csv("data/bird_data.csv")
+
+## 3. Analyse if some birds always show up after 15 minutes --------------------
+
+occ <- as.data.table(droplevels(occ[occ$obs_year == 2017, ]))
+
+ttest_calc <- function(x){
+  if(nrow(x) > 2){
+    t.test(x$minutes_to_obs-15, alternative = "greater")$p.value
+  } else{as.numeric(NA)}
+}
+
+capture.output(occ[occ$species %in% levels(bpo$species),
+                   list("mean" = mean(minutes_to_obs),
+                        "se" = sd(minutes_to_obs)/sqrt(nrow(.SD)),
+                        "ttest_p_value" = ttest_calc(.SD),
+                        "N" = nrow(.SD)), 
+                   by = "species"]) %>% 
+  write(., "results/time_of_first_occurrence.txt")
+  
+## 4. Prepare data for experiment analysis -------------------------------------
 
 ## Make numeric levels for the treatment and experiment matrices:
 forest$exp_num <- ifelse(forest$experiment == "before", 1, 2)
@@ -63,7 +84,7 @@ data <- list(nobs = nrow(bpo),
 
 str(data)
 
-## 3. Define and run the model -------------------------------------------------
+## 5. Define and run the model -------------------------------------------------
 
 ## For true_occ:
 T2 <- array(1, dim = c(max(data$species), max(data$year), max(data$site)))
@@ -116,10 +137,10 @@ jm <- parJagsModel(cl = cl,
                    inits = inits,
                    n.chains = 3) 
 
-parUpdate(cl = cl, object = "bpo_bin", n.iter = 450000)
+parUpdate(cl = cl, object = "bpo_bin", n.iter = 50000)
 
-samples <- 100000
-n.thin <- 100
+samples <- 500000
+n.thin <- 500
 
 zc1 <- parCodaSamples(cl = cl, model = "bpo_bin",
                       variable.names = c("mu_a_pdet", "sd_a_pdet",
@@ -143,7 +164,7 @@ capture.output(summary(zc1), HPDinterval(zc1, prob = 0.95)) %>%
 # capture.output(summary(zc2), HPDinterval(zc2, prob = 0.95)) %>%
 #   write(., "results/params.txt")
 
-## 4. Validate the model and export validation data and figures ----------------
+## 6. Validate the model and export validation data and figures ----------------
 
 pdf("figures/plot_hparams.pdf"); plot(zc1); gelman.plot(zc1); dev.off()
 # pdf("figures/plot_params.pdf"); plot(zc2); gelman.plot(zc2); dev.off()
@@ -188,7 +209,7 @@ capture.output(raftery.diag(zc1),
 # abline(0,1)
 # text(x = 2700, y = 3200, paste0("P=", round(mean(zj_val$p_fit), 3)), cex = 1.5)
 
-## 5. Extract informtion from posterior ----------------------------------------
+## 7. Extract informtion from posterior ----------------------------------------
 
 ## Compare true control and treatments before the experiment:
 zc4 <- parCodaSamples(cl = cl, model = "bpo_bin",
