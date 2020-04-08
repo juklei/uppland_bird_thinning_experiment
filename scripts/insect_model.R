@@ -68,23 +68,23 @@ data <- list(nobs = nrow(if_comb),
 
 ## Create inits:
 inits <- list(list(a_cov = matrix(1, max(data$treat), max(data$exp)),
-                   sigma = 1,
-                   b_2018 = 1,
-                   b_2019 = 1,
+                   sigma = 10,
+                   b_2018 = 10,
+                   b_2019 = 10,
                    sigma_site = 1),
-              list(a_cov = matrix(1e-3, max(data$treat), max(data$exp)),
+              list(a_cov = matrix(10, max(data$treat), max(data$exp)),
                    sigma = 1e-3,
-                   b_2018 = -1,
-                   b_2019 = -1,
+                   b_2018 = -10,
+                   b_2019 = -10,
                    sigma_site = 1),
-              list(a_cov = matrix(0.5, max(data$treat), max(data$exp)),
+              list(a_cov = matrix(50, max(data$treat), max(data$exp)),
                    sigma = 0.5,
                    b_2018 = 0,
                    b_2019 = 0,
                    sigma_site = 1)
               )
 
-model <- "scripts/JAGS/insect_JAGS_cover.R"
+model <- "scripts/JAGS/insect_JAGS_pm.R"
 
 jm <- jags.model(model,
                  data = data,
@@ -96,7 +96,7 @@ burn.in <-  50000
 update(jm, n.iter = burn.in) 
 
 samples <- 10000
-n.thin <- 5
+n.thin <- 10
 
 zc <- coda.samples(jm,
                    variable.names = c("a_cov", "sigma", "sigma_site",
@@ -106,11 +106,11 @@ zc <- coda.samples(jm,
 
 ## Export parameter estimates:
 capture.output(summary(zc), HPDinterval(zc, prob = 0.95)) %>% 
-  write(., "results/parameters_insect_cover.txt")
+  write(., "results/parameters_insect_pm.txt")
 
 ## 5. Validate the model and export validation data and figures ----------------
 
-pdf("figures/plot_insect_cover.pdf")
+pdf("figures/plot_insect_pm.pdf")
 plot(zc); gelman.plot(zc) 
 dev.off()
 
@@ -118,7 +118,7 @@ capture.output(raftery.diag(zc),
                heidel.diag(zc), 
                gelman.diag(zc),
                cor(data.frame(combine.mcmc(zc)))) %>% 
-  write(., "results/diagnostics_insect_cover.txt")
+  write(., "results/diagnostics_insect_pm.txt")
 
 ## Produce validation metrics: 
 zj_val <- jags.samples(jm, 
@@ -166,11 +166,14 @@ zj_out <- coda.samples(jm,
                        thin = n.thin)
 
 capture.output(summary(zj_out), HPDinterval(zj_out, prob = 0.95)) %>% 
-  write(., "results/BACI_insect_cover.txt")
+  write(., "results/BACI_insect_pm.txt")
 
 ## Export for graphing:
 
 zj_out_exp <- as.data.frame(summary(zj_out)$quantiles)
+zj_out_exp$ecdf <- as.vector(apply(combine.mcmc(zj_out),
+                                   2, 
+                                   function(x) 1-ecdf(x)(0)))
 zj_out_exp <- cbind(zj_out_exp, 
                     "treatment" = levels(if_comb$treatment)[-data$ref])
 
@@ -179,6 +182,6 @@ ind_names <- sapply(ind_names, "[", 1)
 
 zj_out_exp <- cbind(zj_out_exp, "indicators" = ind_names)
 
-write.csv(zj_out_exp, "clean/BACI_cover_graphing.csv")
+write.csv(zj_out_exp, "clean/BACI_pm_graphing.csv")
 
 ## -------------------------------END-------------------------------------------

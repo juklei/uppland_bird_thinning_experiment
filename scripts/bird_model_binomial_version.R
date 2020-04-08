@@ -1,7 +1,7 @@
 ## model birds in a hierarchical model
 ## 
 ## First edit: 20191201
-## Last edit: 20200327
+## Last edit: 20200402
 ##
 ## Author: Julian Klein
 

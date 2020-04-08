@@ -30,7 +30,9 @@ i_comb$treatment <- factor(i_comb$treatment,
                            levels = c("Complete retention", 
                                       "Understory retention thinning",
                                       "Conventional thinning"))
-levels(i_comb$indicator)[2:3] <- c("CI-contribution", "CI-divergence")
+levels(i_comb$indicator) <- c("BACI-contrast", 
+                              "CI-contribution", 
+                              "CI-divergence")
 head(i_comb)
 
 ## 3. Make graphs for bpo predictions ------------------------------------------
@@ -69,8 +71,38 @@ P <- p1 + geom_hline(yintercept = 0, size = 1, color = "darkgrey") +
   theme_light(30) +
   theme(legend.position = "none")  
 
-png("figures/BACI_insect.png", 12000/8, 5000/8, "px", res = 600/8)
+png("figures/BACI_insect_slopes.png", 12000/8, 5000/8, "px", res = 600/8)
 plot_grid(G, P, align = "v", nrow = 2, rel_heights = c(4/7, 3/7))
+dev.off()
+
+## Graph for probs:
+
+p1 <- ggplot(data = i_comb, aes(x = response, y = 0, colour = treatment))
+p2a <- geom_errorbar(aes(ymin = 0, ymax = i_comb$ecdf), 
+                     position = position_dodge(0.5),
+                     size = 3, 
+                     width = 0)
+p2b <- geom_errorbar(aes(ymin = i_comb$ecdf - 1, ymax = 0), 
+                     position = position_dodge(0.5),
+                     size = 3,                  
+                     width = 0)
+p3 <- facet_grid(. ~ indicator)
+
+P <- p1 + geom_hline(yintercept = 0, size = 1, color = "darkgrey") + 
+  p2a + p2b + p3 +
+  xlab("") + ylab("") + coord_flip() +
+  scale_colour_manual(values = c("#00AFBB", "#E7B800", "#FC4E07")) +
+  theme_light(30) +
+  theme(legend.position = "top", 
+        legend.title = element_blank(),
+        legend.key.size = unit(3, 'lines'),
+        #legend.direction = "horizontal",
+        legend.box = "vertical",
+        legend.spacing.y = unit(0, "lines"),
+        strip.text.y = element_blank())
+
+png("figures/BACI_insect_probs.png", 12000/8, 3500/8, "px", res = 600/8)
+P
 dev.off()
 
 ## -------------------------------END-------------------------------------------

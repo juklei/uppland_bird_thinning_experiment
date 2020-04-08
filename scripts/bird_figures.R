@@ -36,7 +36,9 @@ BACI_sl$treatment <- factor(BACI_sl$treatment,
                             levels = c("Complete retention", 
                                        "Understory retention thinning",
                                        "Conventional thinning"))
-levels(BACI_sl$indicator)[2:3] <- c("CI-contribution", "CI-divergence")
+levels(BACI_sl$indicator) <- c("BACI-contrast", 
+                               "CI-contribution", 
+                               "CI-divergence")
 
 ## categorise responses:
 BACI_sl$cat <- ifelse(BACI_sl$identity == "cm", "cm", "species")
@@ -46,7 +48,7 @@ head(BACI_sl)
 ## Graph for slopes with CIs:
 
 ## Order:
-O1 <- BACI_sl[BACI_sl$indicator == "BACI" & 
+O1 <- BACI_sl[BACI_sl$indicator == "BACI-contrast" & 
                 BACI_sl$treatment == "Complete retention", 
               c("X50.", "long")]
 O1 <- O1$long[order(O1$X50.)]
@@ -81,7 +83,7 @@ dev.off()
 ## Graph for probabilies:
 
 ## Order:
-O2 <- BACI_sl[BACI_sl$indicator == "BACI" & 
+O2 <- BACI_sl[BACI_sl$indicator == "BACI-contrast" & 
                 BACI_sl$treatment == "Complete retention", 
               c("ecdf", "long")]
 O2 <- O2$long[order(O2$ecdf)]
@@ -130,7 +132,9 @@ BACI_gl$treatment <- factor(BACI_gl$treatment,
                                levels = c("Complete retention", 
                                           "Understory retention thinning",
                                           "Conventional thinning"))
-levels(BACI_gl$indicator)[2:3] <- c("CI-contribution", "CI-divergence")
+levels(BACI_gl$indicator) <- c("BACI-contrast", 
+                               "CI-contribution", 
+                               "CI-divergence")
 BACI_gl$cat[BACI_gl$identity %in% c("bark", 
                                     "f_cpy", 
                                     "f_grd", 
@@ -140,7 +144,7 @@ BACI_gl$cat[BACI_gl$identity %in% c("insect", "omni")] <- "Food"
 BACI_gl$cat[BACI_gl$identity %in% c("bd", "r")] <- "Diversity"
 BACI_gl$cat[BACI_gl$identity %in% c("ft_cplx", "ft_dec", "ft_triv")] <- "Forest"
 BACI_gl$cat[BACI_gl$identity %in% c("trd_pos", "trd_neg", "trd_non")] <- "Trend"
-levels(BACI_gl$identity) <- c("Bark feeder", "Beta (negJaccard)", 
+levels(BACI_gl$identity) <- c("Bark feeder", "Beta (Jaccard distance)", 
                               "Canopy feeder", "Ground feeder", "Complex", 
                               "Deciduous", "Trivial", "Ground/Canopy feeder", 
                               "Hole nester", "Insectivore", "Canopy nester", 
