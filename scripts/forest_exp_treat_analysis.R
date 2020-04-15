@@ -14,7 +14,7 @@ require(ggplot2)
 require(data.table)
 require(dplyr)
 require(nlme)
-require(reshape)
+require(reshape2)
 
 ## 2. Load and explore data ----------------------------------------------------
 
@@ -93,9 +93,21 @@ levels(gg_data_2$X1) <- c("Conventional thinning",
                           "Understory retention thinning")
 gg_data_2$exp <- "After"
 
-## 5. Make a figure -----------------------------------------
+## 5. Make a table and figure --------------------------------------------------
 
 gg_data <- rbind(gg_data_1, gg_data_2)
+
+## Make table:
+
+table_data <- gg_data
+table_data$est_CI <- paste0(round(table_data$Estimate, 2), " (",
+                            round(table_data$`Std. Error`*1.96, 2), ")")
+
+dcast(table_data, exp + X1 ~ L1, value.var = "est_CI") %>%
+write.csv(., "results/forest_var_table.csv", row.names = FALSE)
+
+## Make graph:
+
 gg_data$L1 <- as.factor(gg_data$L1)
 levels(gg_data$L1) <- c("Basal area (BA)", 
                         "BA dead wood", 

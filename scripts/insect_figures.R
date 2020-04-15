@@ -68,7 +68,7 @@ P <- p1 + geom_hline(yintercept = 0, size = 1, color = "darkgrey") +
   g2 + g3 + g4 +
   xlab("") + ylab("") + coord_flip() +
   scale_colour_manual(values = c("#00AFBB", "#E7B800", "#FC4E07")) +
-  theme_light(30) +
+  theme_light(35) +
   theme(legend.position = "none")  
 
 png("figures/BACI_insect_slopes.png", 12000/8, 5000/8, "px", res = 600/8)
@@ -92,7 +92,7 @@ P <- p1 + geom_hline(yintercept = 0, size = 1, color = "darkgrey") +
   p2a + p2b + p3 +
   xlab("") + ylab("") + coord_flip() +
   scale_colour_manual(values = c("#00AFBB", "#E7B800", "#FC4E07")) +
-  theme_light(30) +
+  theme_light(35) +
   theme(legend.position = "top", 
         legend.title = element_blank(),
         legend.key.size = unit(3, 'lines'),
@@ -101,7 +101,7 @@ P <- p1 + geom_hline(yintercept = 0, size = 1, color = "darkgrey") +
         legend.spacing.y = unit(0, "lines"),
         strip.text.y = element_blank())
 
-png("figures/BACI_insect_probs.png", 12000/8, 3500/8, "px", res = 600/8)
+png("figures/BACI_insect_probs.png", 12000/8, 3750/8, "px", res = 600/8)
 P
 dev.off()
 
