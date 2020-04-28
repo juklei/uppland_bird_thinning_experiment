@@ -1,7 +1,7 @@
 ## bird bpo model with a binomial process for detection
 ##
 ## First edit: 20191201
-## Last edit: 20200325
+## Last edit: 20200428
 ##
 ## Author: Julian Klein
 
@@ -26,9 +26,15 @@ model{
       for(p in 1:max(site)){
         occ_true[k,y,p] ~ dbern(pocc[k,y,p])
         logit(pocc[k,y,p]) <- a_pocc[k,treat[p],exp[y,p]] + 
+                              e_block[k,block[p]] +
                               b_pocc_2018[k]*ifelse(y==2,1,0) +
                               b_pocc_2019[k]*ifelse(y==3,1,0) 
   }}}
+
+  ## Group effects:
+  for(k in 1:max(species)){
+    for(b in 1:max(block)){e_block[k,b] ~ dnorm(0, 1/sd_block[k]^2)}
+  }
   
   ## 2. Priors: ----------------------------------------------------------------
   
@@ -49,6 +55,7 @@ model{
       }}
     b_pocc_2018[k] ~ dnorm(mu_b_pocc_2018, 1/sd_b_pocc_2018^2)
     b_pocc_2019[k] ~ dnorm(mu_b_pocc_2019, 1/sd_b_pocc_2019^2)
+    sd_block[k] ~ dt(0, pow(u_sd_block,-2), 1)T(0,)
   }
   
   ## Hyperpriors:
@@ -73,6 +80,7 @@ model{
   sd_b_pocc_2018 ~ dt(0, pow(2.5,-2), 1)T(0,)
   mu_b_pocc_2019 ~ dnorm(0, 0.1)
   sd_b_pocc_2019 ~ dt(0, pow(2.5,-2), 1)T(0,)
+  u_sd_block ~ dunif(0, 5)
 
   # ## 3. Model validation: ------------------------------------------------------
   # 
@@ -98,142 +106,6 @@ model{
   # fit_sim <- sum(sq_sim[])
   # p_fit <- step(fit_sim - fit)
 
-  ## 4. Posteriors: ------------------------------------------------------------
-
-  ## BACI indicators for mean community response:
-  for(m in 1:max(treat)){ ## Backtransform to logit
-    for(n in 1:max(exp)){
-      logit(mu_pocc_real[m,n]) <- mu_a_pocc[m,n]
-  }}
-  for(o in eval){
-    CI_div_cm[o] <- abs(mu_pocc_real[o,2]-mu_pocc_real[ref,2]) -
-                    abs(mu_pocc_real[o,1]-mu_pocc_real[ref,1])
-    CI_ctr_cm[o] <- abs(mu_pocc_real[o,2]-mu_pocc_real[o,1]) -
-                    abs(mu_pocc_real[ref,2]-mu_pocc_real[ref,1])
-    BACI_cm[o] <- (mu_pocc_real[o,2]-mu_pocc_real[o,1]) -
-                  (mu_pocc_real[ref,2]-mu_pocc_real[ref,1])
-  }
-
-  ## BACI indicators for species specific response:
-  for(k in 1:max(species)){ ## Backtransform to logit
-    for(m in 1:max(treat)){
-      for(n in 1:max(exp)){
-        logit(pocc_real[k,m,n]) <- a_pocc[k,m,n]
-    }}
-    for(o in eval){
-      CI_div_sl[o,k] <- abs(pocc_real[k,o,2]-pocc_real[k,ref,2]) -
-                        abs(pocc_real[k,o,1]-pocc_real[k,ref,1])
-      CI_ctr_sl[o,k] <- abs(pocc_real[k,o,2]-pocc_real[k,o,1]) -
-                        abs(pocc_real[k,ref,2]-pocc_real[k,ref,1])
-      BACI_sl[o,k] <- (pocc_real[k,o,2]-pocc_real[k,o,1]) -
-                      (pocc_real[k,ref,2]-pocc_real[k,ref,1])
-  }}
-  
-  ## Compare the pre-experiment values of true control and mean treatments:
-  for(k in 1:max(species)){
-    compare_before[k] <- pocc_real[k,ref,1] - mean(pocc_real[k,eval,1])
-  }
-  
-  ## BACI indicators for food type group response:
-  for(o in eval){
-    CI_div_insect[o] <- mean(CI_div_sl[o,insect])
-    CI_ctr_insect[o] <- mean(CI_ctr_sl[o,insect])
-    BACI_insect[o] <- mean(BACI_sl[o,insect])
-    CI_div_omni[o] <- mean(CI_div_sl[o,omni])
-    CI_ctr_omni[o] <- mean(CI_ctr_sl[o,omni])
-    BACI_omni[o] <- mean(BACI_sl[o,omni])
-  }
-
-  ## BACI indicators for foraging group response:
-  for(o in eval){
-    CI_div_bark[o] <- mean(CI_div_sl[o,bark])
-    CI_ctr_bark[o] <- mean(CI_ctr_sl[o,bark])
-    BACI_bark[o] <- mean(BACI_sl[o,bark])
-    CI_div_f_cpy[o] <- mean(CI_div_sl[o,f_cpy])
-    CI_ctr_f_cpy[o] <- mean(CI_ctr_sl[o,f_cpy])
-    BACI_f_cpy[o] <- mean(BACI_sl[o,f_cpy])
-    CI_div_f_grd[o] <- mean(CI_div_sl[o,f_grd])
-    CI_ctr_f_grd[o] <- mean(CI_ctr_sl[o,f_grd])
-    BACI_f_grd[o] <- mean(BACI_sl[o,f_grd])
-    CI_div_grd_cpy[o] <- mean(CI_div_sl[o,grd_cpy])
-    CI_ctr_grd_cpy[o] <- mean(CI_ctr_sl[o,grd_cpy])
-    BACI_grd_cpy[o] <- mean(BACI_sl[o,grd_cpy])
-  }
-
-  ## BACI indicators for nesting group response:
-  for(o in eval){
-    CI_div_n_grd[o] <- mean(CI_div_sl[o,n_grd])
-    CI_ctr_n_grd[o] <- mean(CI_ctr_sl[o,n_grd])
-    BACI_n_grd[o] <- mean(BACI_sl[o,n_grd])
-    CI_div_n_cpy[o] <- mean(CI_div_sl[o,n_cpy])
-    CI_ctr_n_cpy[o] <- mean(CI_ctr_sl[o,n_cpy])
-    BACI_n_cpy[o] <- mean(BACI_sl[o,n_cpy])
-    CI_div_hole[o] <- mean(CI_div_sl[o,hole])
-    CI_ctr_hole[o] <- mean(CI_ctr_sl[o,hole])
-    BACI_hole[o] <- mean(BACI_sl[o,hole])
-  }
-  
-  ## BACI indicators for forest type response:
-  for(o in eval){
-    CI_div_ft_cplx[o] <- mean(CI_div_sl[o,ft_cplx])
-    CI_ctr_ft_cplx[o] <- mean(CI_ctr_sl[o,ft_cplx])
-    BACI_ft_cplx[o] <- mean(BACI_sl[o,ft_cplx])
-    CI_div_ft_dec[o] <- mean(CI_div_sl[o,ft_dec])
-    CI_ctr_ft_dec[o] <- mean(CI_ctr_sl[o,ft_dec])
-    BACI_ft_dec[o] <- mean(BACI_sl[o,ft_dec])
-    CI_div_ft_triv[o] <- mean(CI_div_sl[o,ft_triv])
-    CI_ctr_ft_triv[o] <- mean(CI_ctr_sl[o,ft_triv])
-    BACI_ft_triv[o] <- mean(BACI_sl[o,ft_triv])
-  }
-  
-  ## BACI indicators for trend type response:
-  for(o in eval){
-    CI_div_trd_pos[o] <- mean(CI_div_sl[o,trd_pos])
-    CI_ctr_trd_pos[o] <- mean(CI_ctr_sl[o,trd_pos])
-    BACI_trd_pos[o] <- mean(BACI_sl[o,trd_pos])
-    CI_div_trd_neg[o] <- mean(CI_div_sl[o,trd_neg])
-    CI_ctr_trd_neg[o] <- mean(CI_ctr_sl[o,trd_neg])
-    BACI_trd_neg[o] <- mean(BACI_sl[o,trd_neg])
-    CI_div_trd_non[o] <- mean(CI_div_sl[o,trd_non])
-    CI_ctr_trd_non[o] <- mean(CI_ctr_sl[o,trd_non])
-    BACI_trd_non[o] <- mean(BACI_sl[o,trd_non])
-  }
-
-  ## BACI indicators for species richness:
-  ## Predict richness per treatment*experiment combination:
-  for(m in 1:max(treat)){
-    for(n in 1:max(exp)){
-      rich[m,n] <- sum(pocc_real[,m,n])
-  }}
-  for(o in eval){
-    CI_div_r[o] <- abs(rich[o,2]-rich[ref,2]) - abs(rich[o,1]-rich[ref,1])
-    CI_ctr_r[o] <- abs(rich[o,2]-rich[o,1]) - abs(rich[ref,2]-rich[ref,1])
-    BACI_r[o] <- (rich[o,2]-rich[o,1]) - (rich[ref,2]-rich[ref,1])
-  }
-
-  ## BACI indicators for beta diversity (Jaccard index):
-  ## Simulate 2 plots for each m*n:
-  for(q in 1:2){
-    for(m in 1:max(treat)){
-      for(n in 1:max(exp)){
-        for(k in 1:max(species)){
-          sim_occ[k,m,n,q] ~ dbern(pocc_real[k,m,n])
-  }}}}
-  ## Calculate for every m*n the jaccard index:
-  for(m in 1:max(treat)){
-    for(n in 1:max(exp)){
-      JI[m,n] <- sum(sim_occ[,m,n,1]*sim_occ[,m,n,2])/
-                 (ifelse(sum(sim_occ[,m,n,1]) == 0, 1, sum(sim_occ[,m,n,1])) +
-                 sum(sim_occ[,m,n,2]) -
-                 sum(sim_occ[,m,n,1]*sim_occ[,m,n,2]))
-      negJI[m,n] <- 1 - JI[m,n]
-  }}
-  for(o in eval){
-    CI_div_bd[o] <- abs(negJI[o,2]-negJI[ref,2]) - abs(negJI[o,1]-negJI[ref,1])
-    CI_ctr_bd[o] <- abs(negJI[o,2]-negJI[o,1]) - abs(negJI[ref,2]-negJI[ref,1])
-    BACI_bd[o] <- (negJI[o,2]-negJI[o,1]) - (negJI[ref,2]-negJI[ref,1])
-  }
-  
 }
 
 
