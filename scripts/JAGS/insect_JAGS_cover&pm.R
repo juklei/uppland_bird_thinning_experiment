@@ -14,7 +14,7 @@ model{
   ## Process model:
   for(i in 1:nobs) {
     ## Stochastic model:
-    response[i] ~ dgamma(shape[i], rate[i])
+    resp[i] ~ dgamma(shape[i], rate[i])
     sim[i] ~ dgamma(shape[i], rate[i])
     ## Moment matching:
     shape[i] <- max(0.00001, mu[i]^2/sigma^2)

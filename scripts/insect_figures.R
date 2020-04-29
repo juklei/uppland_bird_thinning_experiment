@@ -35,7 +35,7 @@ levels(i_comb$indicator) <- c("BACI-contrast",
                               "CI-divergence")
 head(i_comb)
 
-## 3. Make graphs for bpo predictions ------------------------------------------
+## 3. Make graphs --------------------------------------------------------------
 
 ## Graph for slopes with CIs:
 

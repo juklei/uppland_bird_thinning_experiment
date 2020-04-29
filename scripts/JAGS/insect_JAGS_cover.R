@@ -20,12 +20,13 @@ model{
     shape[i] <- max(1e-6, mu[i]^2/sigma^2)
     rate[i] <- max(1e-6, mu[i]/sigma^2)
     ## Deterministic model:
-    mu[i] <- a_cov[treat[i],exp[i]] + #e_site[site[i]] +
+    mu[i] <- a_cov[treat[i],exp[i]] + 
+             e_block[block[i]] +
              b_2018*year_2018[i] +
              b_2019*year_2019[i]
   }
   
-  # for(j in 1:nsites){e_site[j] ~ dnorm(0, 1/sigma_site^2)}
+  for(j in 1:max(block)){e_block[j] ~ dnorm(0, 1/sigma_block^2)}
   
   ## Priors: -------------------------------------------------------------------
   
@@ -34,11 +35,10 @@ model{
     for(n in 1:max(exp)){
       a_cov[m,n] ~ dgamma(1, 1)
     }}
-  # for(k in 1:max(year)){sigma[k] ~ dunif(0, 1)}
   sigma ~ dgamma(1, 1)
   b_2018 ~ dnorm(0, 1)
   b_2019 ~ dnorm(0, 1)
-  # sigma_site ~ dgamma(0.1, 0.1)
+  sigma_block ~ dgamma(1, 1)
   
   ## Model validation: ---------------------------------------------------------
 

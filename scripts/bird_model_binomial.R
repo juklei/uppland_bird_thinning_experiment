@@ -225,19 +225,19 @@ a_zcpt <- array(as.vector(zcp_trans),
                 dim = c(nrow(zcp_trans), max(data$species), 4, 2))
 
 ## Adjust treatment and reference here !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-eval <- c(1, 2, 4); ref <- 3 
+levels(forest$treatment)
+eval <- c(1, 2, 4); ref <- 3
+# eval <- c(2, 4); ref <- 1 
 ## !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 ## Calculate differences in bird species occurrence between control and 
 ## treatments before the experiment:
-treat_comp <- apply(a_zcpt[,,,1], c(1,2), function(x) x[ref] - mean(x[eval]))
-treat_comp <- apply(treat_comp, 2, posterior_summary)
-treat_comp <- cbind(bird_data$long, as.data.frame(t(treat_comp)))
-
-## Export comparison results and adjust name according to the chosen reference:
-write.csv(treat_comp, paste0("clean/treat_comp_ref_",
-                             ifelse(ref == 3, "control", "CR"), 
-                             ".csv"))
+if(ref == 3){
+  treat_comp <- apply(a_zcpt[,,,1], c(1,2), function(x) x[ref] - mean(x[eval]))
+  treat_comp <- apply(treat_comp, 2, posterior_summary)
+  treat_comp <- cbind("species" = bird_data$long, as.data.frame(t(treat_comp)))
+  write.csv(treat_comp, "results/treatment_comparison.csv", row.names = FALSE)
+}
 
 ## Calculate the BACI indicators for all iterations:
 BACI_out <- array(NA, dim = c(dim(a_zcpt)[1:2], length(eval), 3))
@@ -265,10 +265,16 @@ BACI_sl <- abind::abind(BACI_sl, cm, along = 2)
 BACI_sl <- apply(BACI_sl, c(2, 3, 4), posterior_summary)
 BACI_sl <- dcast(data.table::melt(BACI_sl), Var2 + Var3 + Var4 ~ Var1)
 
+## Add naming for figures later on:
+BACI_sl$ref <- paste0("ref_", levels(forest$treatment)[ref])
+colnames(BACI_sl)[1:3] <- c("species", "treatment", "indicator")
+
 ## Export BACI_sl and adjust name according to the chosen reference
-write.csv(BACI_sl, paste0("clean/BACI_sl_ref_", 
-                          ifelse(ref == 3, "control", "CR"), 
-                          ".csv"))
+write.csv(BACI_sl, 
+          paste0("clean/BACI_sl_ref_", 
+                 ifelse(ref == 3, "control", "CR"), 
+                 ".csv"),
+          row.names = FALSE)
 
 ## Calculate guild results:
 bird_data$numeric <- as.numeric(bird_data$short) ## Numeric according to "short"
@@ -285,10 +291,16 @@ gl_calc <- function(x){
 }
 BACI_gl <- BACI_gl[, gl_calc(.SD), by = c("group", "guild")]
 
+## Add naming for figures later on:
+BACI_gl$ref <- paste0("ref_", levels(forest$treatment)[ref])
+colnames(BACI_gl)[3:4] <- c("treatment", "indicator")
+
 ## Export BACI_gl and adjust name according to the chosen reference
-write.csv(BACI_gl, paste0("clean/BACI_gl_ref_", 
-                          ifelse(ref == 3, "control", "CR"), 
-                          ".csv"))
+write.csv(BACI_gl, 
+          paste0("clean/BACI_gl_ref_", 
+                 ifelse(ref == 3, "control", "CR"), 
+                 ".csv"),
+          row.names = FALSE)
 
 end <- Sys.time()
 end - start

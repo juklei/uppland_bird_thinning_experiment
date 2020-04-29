@@ -46,67 +46,74 @@ i_out <- i_comb[, list("acc_mi" = mean(mean_incr),
 
 ## Merge with forest data required for the BACI analysis:
 
-if_comb <- merge(i_out, forest[, c("plot", "year", "treatment", "experiment")], 
+if_comb <- merge(i_out, forest[, c("plot", "block", "year", "treatment", 
+                                   "experiment")], 
                  by.x = c("plot", "obs_year"), 
                  by.y = c("plot", "year"))
 
 ## 4. Prepare the model data, the inits and load the model ---------------------
 
+## Adjust response, treatment and reference here !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+response <- "pm" 
+# response <- "cover"
+levels(forest$treatment)
+eval <- c(1, 2, 4); ref <- 3
+# eval <- c(2, 4); ref <- 1 
+## !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 ## Create model data set:
+resp <- if(response == "cover") if_comb$acc_mi*100 else if_comb$pm_max
 data <- list(nobs = nrow(if_comb),
-             nsites = nlevels(if_comb$plot),
-             cover = if_comb$acc_mi*100,
-             pm = if_comb$pm_max,
-             year = if_comb$obs_year-2016,
+             block = as.numeric(if_comb$block),
+             resp = resp,
              exp = ifelse(if_comb$experiment == "before", 1, 2),
              treat = as.numeric(if_comb$treatment),
-             site = as.numeric(if_comb$plot),
              year_2018 = ifelse(if_comb$obs_year == 2018, 1, 0),
              year_2019 = ifelse(if_comb$obs_year == 2019, 1, 0),
-             eval = c(1, 2, 4),
-             ref = 3) 
+             eval = eval,
+             ref = ref) 
 
 ## Create inits:
-inits <- list(list(a_cov = matrix(1, max(data$treat), max(data$exp)),
-                   sigma = 10,
-                   b_2018 = 10,
-                   b_2019 = 10,
-                   sigma_site = 1),
-              list(a_cov = matrix(10, max(data$treat), max(data$exp)),
-                   sigma = 1e-3,
-                   b_2018 = -10,
-                   b_2019 = -10,
-                   sigma_site = 1),
+inits <- list(#list(a_cov = matrix(1, max(data$treat), max(data$exp)),
+                   # sigma = 10,
+                   # b_2018 = 10,
+                   # b_2019 = 10,
+                   # sigma_block = 1),
+              # list(a_cov = matrix(10, max(data$treat), max(data$exp)),
+              #      sigma = 1e-3,
+              #      b_2018 = -10,
+              #      b_2019 = -10,
+              #      sigma_block = 0.1),
               list(a_cov = matrix(50, max(data$treat), max(data$exp)),
-                   sigma = 0.5,
+                   sigma = 10,
                    b_2018 = 0,
                    b_2019 = 0,
-                   sigma_site = 1)
+                   sigma_block = 10)
               )
 
-model <- "scripts/JAGS/insect_JAGS_pm.R"
+model <- "scripts/JAGS/insect_JAGS_cover&pm.R"
 
 jm <- jags.model(model,
                  data = data,
                  n.adapt = 5000, 
                  inits = inits, 
-                 n.chains = 3) 
+                 n.chains = 1) 
 
-burn.in <-  50000
+burn.in <-  45000
 update(jm, n.iter = burn.in) 
 
-samples <- 10000
-n.thin <- 10
+samples <- 5000
+n.thin <- 5
 
 zc <- coda.samples(jm,
-                   variable.names = c("a_cov", "sigma", "sigma_site",
+                   variable.names = c("a_cov", "sigma", "sigma_block",
                                       "b_2018", "b_2019"), 
                    n.iter = samples, 
                    thin = n.thin)
 
 ## Export parameter estimates:
 capture.output(summary(zc), HPDinterval(zc, prob = 0.95)) %>% 
-  write(., "results/parameters_insect_pm.txt")
+  write(., paste0("results/parameters_insect_", response, ".txt"))
 
 ## 5. Validate the model and export validation data and figures ----------------
 
@@ -118,7 +125,7 @@ capture.output(raftery.diag(zc),
                heidel.diag(zc), 
                gelman.diag(zc),
                cor(data.frame(combine.mcmc(zc)))) %>% 
-  write(., "results/diagnostics_insect_pm.txt")
+  write(., paste0("results/diagnostics_insect_", response, ".txt"))
 
 ## Produce validation metrics: 
 zj_val <- jags.samples(jm, 
@@ -166,7 +173,11 @@ zj_out <- coda.samples(jm,
                        thin = n.thin)
 
 capture.output(summary(zj_out), HPDinterval(zj_out, prob = 0.95)) %>% 
-  write(., "results/BACI_insect_pm.txt")
+  write(., paste0("results/BACI_insect_", 
+                  response, 
+                  "_",
+                  ifelse(ref == 3, "control", "CR"), 
+                  ".txt"))
 
 ## Export for graphing:
 
@@ -182,6 +193,14 @@ ind_names <- sapply(ind_names, "[", 1)
 
 zj_out_exp <- cbind(zj_out_exp, "indicators" = ind_names)
 
-write.csv(zj_out_exp, "clean/BACI_pm_graphing.csv")
+## Export and adjust name according to the chosen reference.
+zj_out_exp$ref <- paste0("ref_", levels(forest$treatment)[ref])
+write.csv(zj_out_exp, 
+          paste0("clean/BACI_",
+                 response,
+                 "_",
+                 ifelse(ref == 3, "control", "CR"), 
+                 ".csv"),
+          row.names = FALSE)
 
 ## -------------------------------END-------------------------------------------
