@@ -28,7 +28,7 @@ ref <- "CR"
 
 ## 3. Make graphs for species level --------------------------------------------
 
-BACI_sl <- rbind(BACI_sl_ctrl, BACI_sl_CR)
+BACI_sl <- if(ref == "control") BACI_sl_ctrl else BACI_sl_CR
 
 ## Prepare data:
 levels(BACI_sl$treatment) <- c("Complete retention", 
@@ -47,24 +47,21 @@ BACI_sl$cat <- ifelse(BACI_sl$species == "Community mean", "cm", "species")
 
 ## Reduce data set to chosen reference level:
 if(ref == "control"){
-  gsl <- BACI_sl[BACI_sl$treatment != "Understory retention thinning" &
-                   BACI_sl$ref == "ref_TC", ]
-} else{
-  gsl <- BACI_sl[BACI_sl$ref == "ref_C", ]
+  BACI_sl <- BACI_sl[BACI_sl$treatment != "Understory retention thinning", ]
+  BACI_sl <- droplevels(BACI_sl)
 }
-gsl <- droplevels(gsl)
 
 ## Graph for slopes with CIs:
 
 ## Order:
-O1 <- gsl[gsl$indicator == "BACI-contrast" & 
-          gsl$treatment == "Conventional thinning", 
-          c("X50.", "species")]
+O1 <- BACI_sl[BACI_sl$indicator == "BACI-contrast" & 
+                BACI_sl$treatment == "Conventional thinning", 
+              c("X50.", "species")]
 O1 <- O1$species[order(O1$X50.)]
-gsl$species <- factor(gsl$species, levels = O1)
+BACI_sl$species <- factor(BACI_sl$species, levels = O1)
 
 ## Make figure:
-g1 <- ggplot(gsl, aes(species, X50., colour = treatment, fill = treatment))
+g1 <- ggplot(BACI_sl, aes(species, X50., colour = treatment, fill = treatment))
 g2 <- geom_errorbar(aes(ymin = X2.5., ymax = X97.5.), 
                     size = 4, 
                     width = 0, 
@@ -95,19 +92,19 @@ dev.off()
 ## Graph for probabilies:
 
 ## Order:
-O2 <- gsl[gsl$indicator == "BACI-contrast" & 
-          gsl$treatment == "Conventional thinning", 
-          c("ecdf", "species")]
+O2 <- BACI_sl[BACI_sl$indicator == "BACI-contrast" &
+                BACI_sl$treatment == "Conventional thinning", 
+              c("ecdf", "species")]
 O2 <- O2$species[order(O2$ecdf)]
-gsl$species <- factor(gsl$species, levels = O2)
+BACI_sl$species <- factor(BACI_sl$species, levels = O2)
 
 ## Make graph:
-p1 <- ggplot(gsl, aes(species, 0, colour = treatment))
-p2a <- geom_errorbar(aes(ymin = 0, ymax = gsl$ecdf), 
+p1 <- ggplot(BACI_sl, aes(species, 0, colour = treatment))
+p2a <- geom_errorbar(aes(ymin = 0, ymax = BACI_sl$ecdf), 
                      position = position_dodge(0.5),
                      size = 4, 
                      width = 0)
-p2b <- geom_errorbar(aes(ymin = gsl$ecdf - 1, ymax = 0), 
+p2b <- geom_errorbar(aes(ymin = BACI_sl$ecdf - 1, ymax = 0), 
                      position = position_dodge(0.5),
                      size = 4,                  
                      width = 0)
@@ -140,7 +137,7 @@ dev.off()
 
 ## 4. Make graphs for guilds & trends ------------------------------------------
 
-BACI_gl <- rbind(BACI_gl_ctrl, BACI_gl_CR)
+BACI_gl <- if(ref == "control") BACI_gl_ctrl else BACI_gl_CR
 
 ## Prepare the data:
 levels(BACI_gl$treatment) <- c("Complete retention", 
@@ -156,15 +153,12 @@ levels(BACI_gl$indicator) <- c("BACI-contrast",
 
 ## Reduce data set to chosen reference level:
 if(ref == "control"){
-  ggl <- BACI_gl[BACI_gl$treatment != "Understory retention thinning" &
-                   BACI_gl$ref == "ref_TC", ]
-} else{
-  ggl <- BACI_gl[BACI_gl$ref == "ref_C", ]
-}
-ggl <- droplevels(ggl)
+  BACI_gl <- BACI_gl[BACI_gl$treatment != "Understory retention thinning", ]
+  BACI_gl <- droplevels(BACI_gl)
+} 
 
 ## Make figure:
-h1 <- ggplot(ggl, aes(guild, X50., colour = treatment, fill = treatment))
+h1 <- ggplot(BACI_gl, aes(guild, X50., colour = treatment, fill = treatment))
 h2 <- geom_errorbar(aes(ymin = X2.5., ymax = X97.5.), 
                     size = 5, 
                     width = 0, 
@@ -194,12 +188,12 @@ dev.off()
 ## Graph for probabilies:
 
 ## Make graph:
-q1 <- ggplot(data = ggl, aes(x = guild, y = 0, colour = treatment))
-q2a <- geom_errorbar(aes(ymin = 0, ymax = ggl$ecdf), 
+q1 <- ggplot(data = BACI_gl, aes(x = guild, y = 0, colour = treatment))
+q2a <- geom_errorbar(aes(ymin = 0, ymax = BACI_gl$ecdf), 
                      position = position_dodge(0.5),
                      size = 5, 
                      width = 0)
-q2b <- geom_errorbar(aes(ymin = ggl$ecdf - 1, ymax = 0), 
+q2b <- geom_errorbar(aes(ymin = BACI_gl$ecdf - 1, ymax = 0), 
                      position = position_dodge(0.5),
                      size = 5,                  
                      width = 0)

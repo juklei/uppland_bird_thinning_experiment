@@ -80,7 +80,7 @@ model{
   sd_b_pocc_2018 ~ dt(0, pow(2.5,-2), 1)T(0,)
   mu_b_pocc_2019 ~ dnorm(0, 0.1)
   sd_b_pocc_2019 ~ dt(0, pow(2.5,-2), 1)T(0,)
-  u_sd_block ~ dunif(0, 5)
+  u_sd_block ~ dt(0, pow(2.5,-2), 1)T(0,)
 
   # ## 3. Model validation: ------------------------------------------------------
   # 
@@ -106,6 +106,35 @@ model{
   # fit_sim <- sum(sq_sim[])
   # p_fit <- step(fit_sim - fit)
 
+  ## 4. Posterior caclualtions:
+  
+  ## Backtransform to probability scale:
+  for(k in 1:max(species)){ 
+    for(m in 1:max(treat)){
+      for(n in 1:max(exp)){
+        logit(pocc_real[k,m,n]) <- a_pocc[k,m,n]
+  }}}
+
+  ## Alpha and beta diversity (Jaccard distance):
+  ## Simulate 2 plots for each m*n:
+  for(m in 1:max(treat)){
+    for(n in 1:max(exp)){
+      for(k in 1:max(species)){
+        for(q in 1:2){
+          sim_occ[k,m,n,q] ~ dbern(pocc_real[k,m,n])
+        }
+        occ_both[k,m,n] <- sim_occ[k,m,n,1]*sim_occ[k,m,n,2]
+      }
+      a1[m,n] <- sum(sim_occ[,m,n,1])
+      a2[m,n] <- sum(sim_occ[,m,n,2])
+      ## Alpha diversity:
+      alpha_d[m,n] <- (a1[m,n] + a2[m,n])/2
+      ## Beta diversity (Jaccard distance):
+      a_both[m,n] <- sum(occ_both[,m,n]) 
+      JI[m,n] <- a_both[m,n]/max((a1[m,n] + a2[m,n] - a_both[m,n]), 1E-6)
+      beta_d[m,n] <- 1 - JI[m,n]
+  }}
+  
 }
 
-
+  

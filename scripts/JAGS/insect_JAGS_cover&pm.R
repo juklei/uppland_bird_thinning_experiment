@@ -1,7 +1,5 @@
 ## insect index on sticky traps evaluated in BACI experiment
 ##
-## Response: day pm with max increment
-##
 ## First edit: 2020225
 ## Last edit: 2020429
 ##
@@ -43,18 +41,18 @@ model{
   ## Model validation: ---------------------------------------------------------
 
   ## Bayesian p-value:
-  mean_obs <- mean(pm[])
+  mean_obs <- mean(resp[])
   mean_sim <- mean(sim[])
   p_mean <- step(mean_sim - mean_obs)
 
   ## Coefficient of variation:
-  cv_obs <- sd(pm[])/mean_obs
+  cv_obs <- sd(resp[])/mean_obs
   cv_sim <- sd(sim[])/mean_sim
   p_cv <- step(cv_sim - cv_obs)
 
   ## Model fit:
   for(i in 1:nobs){
-    sq[i] <- (pm[i] - shape[i]/rate[i])^2
+    sq[i] <- (resp[i] - shape[i]/rate[i])^2
     sq_sim[i] <- (sim[i] - shape[i]/rate[i])^2
   }
 

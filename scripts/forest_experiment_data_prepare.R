@@ -19,6 +19,9 @@ dir("data")
 forest <- read.csv("data/forest_data_uppland_plot.csv")
 head(forest)
 
+## Combines Sönkes blocks to one:
+levels(forest$block)[c(2,3,7,10)] <- "sigtuna"
+
 ## 3. Reduce data set to needed variables, claculate percentages, --------------
 ##    and calculate differences due to treatments.
 

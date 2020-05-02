@@ -54,8 +54,8 @@ if_comb <- merge(i_out, forest[, c("plot", "block", "year", "treatment",
 ## 4. Prepare the model data, the inits and load the model ---------------------
 
 ## Adjust response, treatment and reference here !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-response <- "pm" 
-# response <- "cover"
+# response <- "pm" 
+response <- "cover"
 levels(forest$treatment)
 eval <- c(1, 2, 4); ref <- 3
 # eval <- c(2, 4); ref <- 1 
@@ -74,21 +74,21 @@ data <- list(nobs = nrow(if_comb),
              ref = ref) 
 
 ## Create inits:
-inits <- list(#list(a_cov = matrix(1, max(data$treat), max(data$exp)),
-                   # sigma = 10,
-                   # b_2018 = 10,
-                   # b_2019 = 10,
-                   # sigma_block = 1),
-              # list(a_cov = matrix(10, max(data$treat), max(data$exp)),
-              #      sigma = 1e-3,
-              #      b_2018 = -10,
-              #      b_2019 = -10,
-              #      sigma_block = 0.1),
-              list(a_cov = matrix(50, max(data$treat), max(data$exp)),
+inits <- list(list(a_cov = matrix(0.1, max(data$treat), max(data$exp)),
+                   sigma = 0.1,
+                   b_2018 = 10,
+                   b_2019 = 10,
+                   sigma_block = 10),
+              list(a_cov = matrix(10, max(data$treat), max(data$exp)),
                    sigma = 10,
+                   b_2018 = -10,
+                   b_2019 = -10,
+                   sigma_block = 0.1),
+              list(a_cov = matrix(1, max(data$treat), max(data$exp)),
+                   sigma = 1,
                    b_2018 = 0,
                    b_2019 = 0,
-                   sigma_block = 10)
+                   sigma_block = 1)
               )
 
 model <- "scripts/JAGS/insect_JAGS_cover&pm.R"
@@ -97,9 +97,9 @@ jm <- jags.model(model,
                  data = data,
                  n.adapt = 5000, 
                  inits = inits, 
-                 n.chains = 1) 
+                 n.chains = 3) 
 
-burn.in <-  45000
+burn.in <-  95000
 update(jm, n.iter = burn.in) 
 
 samples <- 5000
@@ -117,7 +117,7 @@ capture.output(summary(zc), HPDinterval(zc, prob = 0.95)) %>%
 
 ## 5. Validate the model and export validation data and figures ----------------
 
-pdf("figures/plot_insect_pm.pdf")
+pdf(paste0("figures/plot_insect_", response, ".pdf"))
 plot(zc); gelman.plot(zc) 
 dev.off()
 

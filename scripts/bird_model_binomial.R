@@ -71,7 +71,12 @@ data <- list(nobs = nrow(bpo),
              exp = acast(forest, year ~ plot, value.var = "exp_num"),
              treat = acast(forest, 
                            year ~ plot, 
-                           value.var = "treatment_num")[1, ])
+                           value.var = "treatment_num")[1, ],
+             C_plots = unique(forest$plot_num[forest$treatment == "C"]),
+             T_plots = unique(forest$plot_num[forest$treatment == "T"]),
+             TC_plots = unique(forest$plot_num[forest$treatment == "TC"]),
+             URT_plots = unique(forest$plot_num[forest$treatment == "URT"])
+             )
 
 str(data)
 
@@ -131,10 +136,10 @@ jm <- parJagsModel(cl = cl,
                    inits = inits,
                    n.chains = 3) 
 
-parUpdate(cl = cl, object = "bpo_bin", n.iter = 45000)
+parUpdate(cl = cl, object = "bpo_bin", n.iter = 5000)
 
-samples <- 10000
-n.thin <- 10
+samples <- 5000
+n.thin <- 5
 
 zc1 <- parCodaSamples(cl = cl, model = "bpo_bin",
                       variable.names = c("mu_a_pdet", "sd_a_pdet",
@@ -205,61 +210,108 @@ capture.output(raftery.diag(zc1),
 
 ## 7. Extract informtion from posterior ----------------------------------------
 
-## Extract the thinned MCMC chain for all 8 a_zcpts:
-zc_posterior <- parCodaSamples(cl = cl, model = "bpo_bin",
-                               variable.names = "a_pocc",
-                               n.iter = samples,
-                               thin = n.thin)
-# save(zc_posterior, file = "temp/zc_posterior.r")
-load("temp/zc_posterior.r")
-zcp <- combine.mcmc(zc_posterior, collapse.chains = TRUE) 
+## Extract alpha and beta diversity and store for use in a seperate model:
+zc_post1 <- parCodaSamples(cl = cl, model = "bpo_bin",
+                           variable.names = c("alpha_d", "beta_d"), 
+                           n.iter = samples,
+                           thin = n.thin)
+save(zc_post1, file = "temp/zc_post1.r")
+load("temp/zc_post1.r")
+zcp1 <- combine.mcmc(zc_post1, collapse.chains = TRUE) 
+
+## To calculate all the results and indicators,create an array with the format 
+## iteration*treatment(m)*experiment(n)*diversity(2): 
+## The dimensions follow the column names ordering of the output matrix.
+## The array is filled along the dimensions (e.g.: row, column, array, ...).
+a_zcp1 <- array(as.vector(zcp1), dim = c(nrow(zcp1), 4, 2, 2))
+
+## Extract the thinned MCMC chains for all species and intercepts:
+zc_post2 <- parCodaSamples(cl = cl, model = "bpo_bin",
+                           variable.names = "a_pocc",
+                           n.iter = samples,
+                           thin = n.thin)
+save(zc_post2, file = "temp/zc_post2.r")
+load("temp/zc_post2.r")
+zcp2 <- combine.mcmc(zc_post2, collapse.chains = TRUE) 
 
 ## Transform values to the probability scale because a logistic GLMM was used:
-zcp_trans <- inv.logit(zcp)
+zcp2_trans <- inv.logit(zcp2)
 
 ## To calculate all the results and indicators,create an array with the format 
 ## iteration*species(k in model)*treatment(m)*experiment(n): 
 ## The dimensions follow the column names ordering of the output matrix.
 ## The array is filled along the dimensions (e.g.: row, column, array, ...).
-a_zcpt <- array(as.vector(zcp_trans), 
-                dim = c(nrow(zcp_trans), max(data$species), 4, 2))
+a_zcp2t <- array(as.vector(zcp2_trans), 
+                dim = c(nrow(zcp2_trans), max(data$species), 4, 2))
 
 ## Adjust treatment and reference here !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 levels(forest$treatment)
-eval <- c(1, 2, 4); ref <- 3
-# eval <- c(2, 4); ref <- 1 
+# eval <- c(1, 2, 4); ref <- 3
+eval <- c(2, 4); ref <- 1
 ## !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+## Calculate BACI indicators of alpha - and beta diversity:
+BACI_out1 <- array(NA, dim = c(dim(a_zcp1)[c(1, 4)], length(eval), 3))
+for(m in 1:length(eval)){
+  BACI_out1[,,m,1] <- (a_zcp1[,eval[m],2,] - a_zcp1[,eval[m],1,]) -    
+                      (a_zcp1[,ref,2,] - a_zcp1[,ref,1,])        ## BACI
+  BACI_out1[,,m,2] <- abs(a_zcp1[,eval[m],2,] - a_zcp1[,eval[m],1,]) - 
+                      abs(a_zcp1[,ref,2,] - a_zcp1[,ref,1,])     ## CI-ctrl
+  BACI_out1[,,m,3] <- abs(a_zcp1[,eval[m],2,] - a_zcp1[,ref,2,]) -     
+                      abs(a_zcp1[,eval[m],1,] - a_zcp1[,ref,1,]) ## CI_div
+}
+
+## Keep track of the names:
+dimnames(BACI_out1) <- list(NULL, 
+                            c("alpha", "beta"), 
+                            levels(forest$treatment)[eval], 
+                            c("BACI", "CI_ctr", "CI_div"))
+
+## Calculate results:
+BACI_div <- apply(BACI_out1, c(2, 3, 4), posterior_summary)
+BACI_div <- dcast(data.table::melt(BACI_div), Var2 + Var3 + Var4 ~ Var1)
+
+## Add naming for figures later on:
+BACI_div$ref <- paste0("ref_", levels(forest$treatment)[ref])
+colnames(BACI_div)[1:3] <- c("div_ind", "treatment", "indicator")
+
+## Export BACI_div and adjust name according to the chosen reference
+write.csv(BACI_div, 
+          paste0("clean/BACI_div_ref_", 
+                 ifelse(ref == 3, "control", "CR"), 
+                 ".csv"),
+          row.names = FALSE)
 
 ## Calculate differences in bird species occurrence between control and 
 ## treatments before the experiment:
 if(ref == 3){
-  treat_comp <- apply(a_zcpt[,,,1], c(1,2), function(x) x[ref] - mean(x[eval]))
+  treat_comp <- apply(a_zcp2t[,,,1], c(1,2), function(x) x[ref] - mean(x[eval]))
   treat_comp <- apply(treat_comp, 2, posterior_summary)
   treat_comp <- cbind("species" = bird_data$long, as.data.frame(t(treat_comp)))
   write.csv(treat_comp, "results/treatment_comparison.csv", row.names = FALSE)
 }
 
-## Calculate the BACI indicators for all iterations:
-BACI_out <- array(NA, dim = c(dim(a_zcpt)[1:2], length(eval), 3))
+## Calculate the BACI indicators for all species and for all iterations:
+BACI_out2 <- array(NA, dim = c(dim(a_zcp2t)[1:2], length(eval), 3))
 for(m in 1:length(eval)){
-  BACI_out[,,m,1] <- (a_zcpt[,,eval[m],2] - a_zcpt[,,eval[m],1]) -    
-                     (a_zcpt[,,ref,2] - a_zcpt[,,ref,1])        ## BACI
-  BACI_out[,,m,2] <- abs(a_zcpt[,,eval[m],2] - a_zcpt[,,eval[m],1]) - 
-                     abs(a_zcpt[,,ref,2] - a_zcpt[,,ref,1])     ## CI-control
-  BACI_out[,,m,3] <- abs(a_zcpt[,,eval[m],2] - a_zcpt[,,ref,2]) -     
-                     abs(a_zcpt[,,eval[m],1] - a_zcpt[,,ref,1]) ## CI_divergence
+  BACI_out2[,,m,1] <- (a_zcp2t[,,eval[m],2] - a_zcp2t[,,eval[m],1]) -    
+                      (a_zcp2t[,,ref,2] - a_zcp2t[,,ref,1])        ## BACI
+  BACI_out2[,,m,2] <- abs(a_zcp2t[,,eval[m],2] - a_zcp2t[,,eval[m],1]) - 
+                      abs(a_zcp2t[,,ref,2] - a_zcp2t[,,ref,1])     ## CI-ctrl
+  BACI_out2[,,m,3] <- abs(a_zcp2t[,,eval[m],2] - a_zcp2t[,,ref,2]) -     
+                      abs(a_zcp2t[,,eval[m],1] - a_zcp2t[,,ref,1]) ## CI-div
 }
 
 ## Keep track of the names:
-dimnames(BACI_out) <- list(NULL, 
-                           bird_data$long, 
-                           levels(forest$treatment)[eval], 
-                           c("BACI", "CI_ctr", "CI_div"))
+dimnames(BACI_out2) <- list(NULL, 
+                            bird_data$long, 
+                            levels(forest$treatment)[eval], 
+                            c("BACI", "CI_ctr", "CI_div"))
 
 ## Calculate community mean and species level results:
-BACI_sl <- BACI_out
-cm <- apply(BACI_out, c(1, 3, 4), mean)
-dim(cm) <- c(nrow(a_zcpt), 1, length(eval), 3)
+BACI_sl <- BACI_out2
+cm <- apply(BACI_out2, c(1, 3, 4), mean)
+dim(cm) <- c(nrow(a_zcp2t), 1, length(eval), 3)
 dimnames(cm)[2] <- list("Community mean")
 BACI_sl <- abind::abind(BACI_sl, cm, along = 2)
 BACI_sl <- apply(BACI_sl, c(2, 3, 4), posterior_summary)
@@ -284,7 +336,7 @@ BACI_gl <- data.table::melt(bird_data[, c(2, 4:9)],
                             value.name = "guild")
 BACI_gl <- as.data.table(BACI_gl)
 gl_calc <- function(x){
-  T1 <- apply(BACI_out[,x$numeric,,], c(1, 3, 4), mean)
+  T1 <- apply(BACI_out2[,x$numeric,,], c(1, 3, 4), mean)
   T1 <- apply(T1, c(2, 3), posterior_summary)
   T1 <- dcast(data.table::melt(T1), Var2 + Var3 ~ Var1)
   return(T1)
