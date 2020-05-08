@@ -182,7 +182,7 @@ capture.output(summary(zj_out), HPDinterval(zj_out, prob = 0.95)) %>%
   write(., paste0("results/BACI_insect_", 
                   response, 
                   "_",
-                  ifelse(ref == 3, "control", "CR"), 
+                  ifelse(ref == 3, "NF", "CR"), 
                   ".txt"))
 
 ## Export for graphing:
@@ -205,7 +205,7 @@ write.csv(zj_out_exp,
           paste0("clean/BACI_",
                  response,
                  "_",
-                 ifelse(ref == 3, "control", "CR"), 
+                 ifelse(ref == 3, "NF", "CR"), 
                  ".csv"),
           row.names = FALSE)
 
