@@ -1,13 +1,13 @@
 ## Make figures for the experimental data and the bpo model responses
 ##
 ## First edit: 20191028
-## Last edit:  20200428
+## Last edit:  20200504
 ##
 ## Author: Julian Klein
 
 ## 1. Clear environment and load libraries -------------------------------------
 
-# rm(list = ls())
+rm(list = ls())
 
 require("ggplot2")
 require("rjags")
@@ -16,178 +16,104 @@ require("data.table")
 ## 2. Load and prepare data ----------------------------------------------------
 
 bird_data <- read.csv("data/bird_data.csv")
-BACI_sl_ctrl <- read.csv("clean/BACI_sl_ref_control.csv")
-BACI_gl_ctrl <- read.csv("clean/BACI_gl_ref_control.csv")
+BACI_sl_NF <- read.csv("clean/BACI_sl_ref_NF.csv")
+BACI_gl_NF <- read.csv("clean/BACI_gl_ref_NF.csv")
 BACI_sl_CR <- read.csv("clean/BACI_sl_ref_CR.csv")
 BACI_gl_CR <- read.csv("clean/BACI_gl_ref_CR.csv")
 
-## Chose reference category here !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-# ref <- "control"
-ref <- "CR"
-## !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+## Exclude URT from NF controls:
+BACI_sl_NF <- droplevels(BACI_sl_NF[BACI_sl_NF$treatment != "URT", ])
+BACI_gl_NF <- droplevels(BACI_gl_NF[BACI_gl_NF$treatment != "URT", ])
 
-## 3. Make graphs for species level --------------------------------------------
+## Combine all data:
+BACI_sl <- rbind(BACI_sl_NF, BACI_sl_CR)
+BACI_gl <- rbind(BACI_gl_NF, BACI_gl_CR)
 
-BACI_sl <- if(ref == "control") BACI_sl_ctrl else BACI_sl_CR
+## Change level names:
+l1 <- c("Complete retention", 
+        "Conventional thinning", 
+        "Understory retention thinning")
+levels(BACI_sl$treatment) <-  l1
+levels(BACI_gl$treatment) <-  l1
+l2 <- c("BACI-contrast", "CI-contribution", "CI-divergence")
+levels(BACI_sl$indicator) <- l2
+levels(BACI_gl$indicator) <- l2
+l3 <- c("Control = NF", "Control = CR")
+levels(BACI_sl$ref) <- l3
+levels(BACI_gl$ref) <- l3
 
-## Prepare data:
-levels(BACI_sl$treatment) <- c("Complete retention", 
-                               "Conventional thinning", 
-                               "Understory retention thinning")
-BACI_sl$treatment <- factor(BACI_sl$treatment,
-                            levels = c("Complete retention", 
-                                       "Understory retention thinning",
-                                       "Conventional thinning"))
-levels(BACI_sl$indicator) <- c("BACI-contrast", 
-                               "CI-contribution", 
-                               "CI-divergence")
+## 3. Make combined figure for BACI_sl -----------------------------------------
+
+## Graph with slopes:
 
 ## categorise responses:
 BACI_sl$cat <- ifelse(BACI_sl$species == "Community mean", "cm", "species")
-
-## Reduce data set to chosen reference level:
-if(ref == "control"){
-  BACI_sl <- BACI_sl[BACI_sl$treatment != "Understory retention thinning", ]
-  BACI_sl <- droplevels(BACI_sl)
-}
-
-## Graph for slopes with CIs:
-
-## Order:
-O1 <- BACI_sl[BACI_sl$indicator == "BACI-contrast" & 
-                BACI_sl$treatment == "Conventional thinning", 
-              c("X50.", "species")]
-O1 <- O1$species[order(O1$X50.)]
-BACI_sl$species <- factor(BACI_sl$species, levels = O1)
 
 ## Make figure:
 g1 <- ggplot(BACI_sl, aes(species, X50., colour = treatment, fill = treatment))
 g2 <- geom_errorbar(aes(ymin = X2.5., ymax = X97.5.), 
                     size = 4, 
                     width = 0, 
-                    position = position_dodge(0.5))
-g3 <- geom_point(position = position_dodge(0.5), size = 5, colour = "black")
-g4 <- facet_grid(cat ~ indicator, space = "free", scales = "free")
+                    # alpha = 0.8,
+                    position = position_dodge(0.6))
+g3 <- geom_point(position = position_dodge(0.6), size = 6, colour = "black")
+g4 <- facet_grid(vars(cat), vars(ref, indicator), "free", scales = "free")
 G <- g1 +
   geom_hline(yintercept = 0, size = 2, color = "darkgrey") + 
   g2 + g4 + g3 +
   xlab("") + ylab("") + coord_flip() +
-  scale_colour_manual(values = c(ifelse(ref == "control", "#00AFBB", "#E7B800"), 
-                                 "#FC4E07")) +
-  theme_light(58) +
-  theme(legend.position = "top", 
+  scale_colour_manual(values = c("#00AFBB", "#FC4E07", "#E7B800")) +
+  theme_light(70) +
+  theme(legend.position = "top",
         legend.title = element_blank(),
-        legend.key.size = unit(3, 'lines'),
+        legend.key.size = unit(5, 'lines'),
         legend.box = "vertical",
         legend.spacing.y = unit(0, "lines"),
         strip.text.y = element_blank())
 
-png(paste0("figures/BACI_sl_", ref, "_slopes.png"),
-    21000/8, 24000/8, 
-    "px", 
-    res = 600/8)
+png("figures/BACI_sl_slopes.png", 30000/8, 27000/8, "px", res = 600/8)
 G
 dev.off()
 
-## Graph for probabilies:
-
-## Order:
-O2 <- BACI_sl[BACI_sl$indicator == "BACI-contrast" &
-                BACI_sl$treatment == "Conventional thinning", 
-              c("ecdf", "species")]
-O2 <- O2$species[order(O2$ecdf)]
-BACI_sl$species <- factor(BACI_sl$species, levels = O2)
-
-## Make graph:
-p1 <- ggplot(BACI_sl, aes(species, 0, colour = treatment))
-p2a <- geom_errorbar(aes(ymin = 0, ymax = BACI_sl$ecdf), 
-                     position = position_dodge(0.5),
-                     size = 4, 
-                     width = 0)
-p2b <- geom_errorbar(aes(ymin = BACI_sl$ecdf - 1, ymax = 0), 
-                     position = position_dodge(0.5),
-                     size = 4,                  
-                     width = 0)
-P <- p1 +
-  geom_hline(yintercept = 0, size = 2, color = "darkgrey") +
-  scale_y_continuous(breaks = c(-1, -0.5, 0, 0.5, 1),
-                     labels = c("1", ".5", "0", "", ""),
-                     sec.axis = dup_axis(
-                       name = "Probability that the indicator is positive",
-                       labels = c("", "", "0", ".5", "1"))) +
-  p2a + p2b + g4 +
-  xlab("") + ylab("Probability that the indicator is negative") + 
-  coord_flip() +
-  scale_colour_manual(values = c(ifelse(ref == "control", "#00AFBB", "#E7B800"), 
-                                 "#FC4E07")) +
-  theme_light(58) +
-  theme(legend.position = "top", 
-        legend.title = element_blank(),
-        legend.key.size = unit(3, 'lines'),
-        legend.box = "vertical",
-        legend.spacing.y = unit(0, "lines"),
-        strip.text.y = element_blank())
-
-png(paste0("figures/BACI_sl_", ref, "_probs.png"),
-    21000/8, 24000/8,
-    "px", 
-    res = 600/8)
-P
-dev.off()
+# ## Graph for probabilies:
+# 
+# ## Make graph:
+# p1 <- ggplot(BACI_sl, aes(species, 0, colour = treatment))
+# p2a <- geom_errorbar(aes(ymin = 0, ymax = BACI_sl$ecdf),
+#                      position = position_dodge(0.6),
+#                      size = 4,
+#                      width = 0)
+# p2b <- geom_errorbar(aes(ymin = BACI_sl$ecdf - 1, ymax = 0),
+#                      position = position_dodge(0.6),
+#                      size = 4,
+#                      width = 0)
+# P <- p1 +
+#   geom_hline(yintercept = 0, size = 2, color = "darkgrey") +
+#   scale_y_continuous(breaks = c(-1, -0.5, 0, 0.5, 1),
+#                      labels = c("1", ".5", "0", "", ""),
+#                      sec.axis = dup_axis(
+#                        name = "Probability that the indicator is positive",
+#                        labels = c("", "", "0", ".5", "1"))) +
+#   p2a + p2b + g4 +
+#   xlab("") + ylab("Probability that the indicator is negative") +
+#   coord_flip() +
+#   scale_colour_manual(values = c("#00AFBB", "#FC4E07", "#E7B800")) +
+#   theme_light(70) +
+#   theme(legend.position = "top",
+#         legend.title = element_blank(),
+#         legend.key.size = unit(5, 'lines'),
+#         legend.box = "vertical",
+#         legend.spacing.y = unit(0, "lines"),
+#         strip.text.y = element_blank())
+# 
+# png("figures/BACI_sl_probs.png", 30000/8, 27500/8, "px", res = 600/8)
+# P
+# dev.off()
 
 ## 4. Make graphs for guilds & trends ------------------------------------------
 
-BACI_gl <- if(ref == "control") BACI_gl_ctrl else BACI_gl_CR
-
-## Prepare the data:
-levels(BACI_gl$treatment) <- c("Complete retention", 
-                               "Conventional thinning", 
-                               "Understory retention thinning")
-BACI_gl$treatment <- factor(BACI_gl$treatment, 
-                            levels = c("Complete retention", 
-                                       "Understory retention thinning",
-                                       "Conventional thinning"))
-levels(BACI_gl$indicator) <- c("BACI-contrast", 
-                               "CI-contribution", 
-                               "CI-divergence")
-
-## Reduce data set to chosen reference level:
-if(ref == "control"){
-  BACI_gl <- BACI_gl[BACI_gl$treatment != "Understory retention thinning", ]
-  BACI_gl <- droplevels(BACI_gl)
-} 
-
-## Make figure:
-h1 <- ggplot(BACI_gl, aes(guild, X50., colour = treatment, fill = treatment))
-h2 <- geom_errorbar(aes(ymin = X2.5., ymax = X97.5.), 
-                    size = 5, 
-                    width = 0, 
-                    position = position_dodge(0.5))
-h3 <- geom_point(position = position_dodge(0.5), size = 6.5, colour = "black")
-h4 <- facet_grid(group ~ indicator, space = "free", scales = "free")
-H <- h1 +
-  geom_hline(yintercept = 0, size = 2, color = "darkgrey") + 
-  h2 + h3 + h4 +
-  xlab("") + ylab("") + coord_flip() +
-  scale_colour_manual(values = c(ifelse(ref == "control", "#00AFBB", "#E7B800"), 
-                                 "#FC4E07")) +
-  theme_light(58) +
-  theme(legend.position = "top", 
-        legend.title = element_blank(),
-        legend.key.size = unit(3, 'lines'),
-        legend.box = "vertical",
-        legend.spacing.y = unit(0, "lines"))
-
-png(paste0("figures/BACI_gl_", ref, "_slopes.png"),
-    21000/8, 18000/8, 
-    "px", 
-    res = 600/8)
-H
-dev.off()
-
 ## Graph for probabilies:
 
-## Make graph:
 q1 <- ggplot(data = BACI_gl, aes(x = guild, y = 0, colour = treatment))
 q2a <- geom_errorbar(aes(ymin = 0, ymax = BACI_gl$ecdf), 
                      position = position_dodge(0.5),
@@ -197,6 +123,7 @@ q2b <- geom_errorbar(aes(ymin = BACI_gl$ecdf - 1, ymax = 0),
                      position = position_dodge(0.5),
                      size = 5,                  
                      width = 0)
+q3 <- facet_grid(vars(group), vars(ref, indicator), "free", scales = "free")
 Q <- q1 +
   geom_hline(yintercept = 0, size = 2, color = "darkgrey") +
   scale_y_continuous(breaks = c(-1, -0.5, 0, 0.5, 1),
@@ -204,22 +131,18 @@ Q <- q1 +
                      sec.axis = dup_axis(
                        name = "Probability that the indicator is positive",
                        labels = c("", "", "0", ".5", "1"))) +
-  q2a + q2b + h4 +
+  q2a + q2b + q3 +
   xlab("") + ylab("Probability that the indicator is negative") + 
   coord_flip() +
-  scale_colour_manual(values = c(ifelse(ref == "control", "#00AFBB", "#E7B800"), 
-                                 "#FC4E07")) +
-  theme_light(58) +
+  scale_colour_manual(values = c("#00AFBB", "#FC4E07", "#E7B800")) +
+  theme_light(70) +
   theme(legend.position = "top", 
         legend.title = element_blank(),
-        legend.key.size = unit(3, 'lines'),
+        legend.key.size = unit(5, 'lines'),
         legend.box = "vertical",
         legend.spacing.y = unit(0, "lines"))
 
-png(paste0("figures/BACI_gl_", ref, "_probs.png"), 
-    21000/8, 18000/8, 
-    "px", 
-    res = 600/8)
+png("figures/BACI_gl_probs.png", 30000/8, 20000/8, "px", res = 600/8)
 Q
 dev.off()
 
