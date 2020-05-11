@@ -1,7 +1,7 @@
 ## Make figures for the experimental data and the bpo model responses
 ##
 ## First edit: 20191028
-## Last edit:  20200504
+## Last edit:  20200511
 ##
 ## Author: Julian Klein
 
@@ -10,8 +10,9 @@
 rm(list = ls())
 
 require("ggplot2")
-require("rjags")
 require("data.table")
+# devtools::install_github("teunbrand/ggh4x")
+require("ggh4x")
 
 ## 2. Load and prepare data ----------------------------------------------------
 
@@ -38,7 +39,7 @@ levels(BACI_gl$treatment) <-  l1
 l2 <- c("BACI-contrast", "CI-contribution", "CI-divergence")
 levels(BACI_sl$indicator) <- l2
 levels(BACI_gl$indicator) <- l2
-l3 <- c("Control = NF", "Control = CR")
+l3 <- c("Control = No forestry", "Control = Complete retention")
 levels(BACI_sl$ref) <- l3
 levels(BACI_gl$ref) <- l3
 
@@ -49,6 +50,9 @@ levels(BACI_gl$ref) <- l3
 ## categorise responses:
 BACI_sl$cat <- ifelse(BACI_sl$species == "Community mean", "cm", "species")
 
+## Start species names with "A" on top:
+BACI_sl$species <- factor(BACI_sl$species, rev(levels(BACI_sl$species)))
+
 ## Make figure:
 g1 <- ggplot(BACI_sl, aes(species, X50., colour = treatment, fill = treatment))
 g2 <- geom_errorbar(aes(ymin = X2.5., ymax = X97.5.), 
@@ -57,11 +61,12 @@ g2 <- geom_errorbar(aes(ymin = X2.5., ymax = X97.5.),
                     # alpha = 0.8,
                     position = position_dodge(0.6))
 g3 <- geom_point(position = position_dodge(0.6), size = 6, colour = "black")
-g4 <- facet_grid(vars(cat), vars(ref, indicator), "free", scales = "free")
+g4 <- facet_nested(vars(cat), vars(ref, indicator), "free", scales = "free")
 G <- g1 +
   geom_hline(yintercept = 0, size = 2, color = "darkgrey") + 
   g2 + g4 + g3 +
-  xlab("") + ylab("") + coord_flip() +
+  xlab("") + ylab("Indicator value for probability of occurrence") + 
+  coord_flip() +
   scale_colour_manual(values = c("#00AFBB", "#FC4E07", "#E7B800")) +
   theme_light(70) +
   theme(legend.position = "top",
@@ -69,9 +74,10 @@ G <- g1 +
         legend.key.size = unit(5, 'lines'),
         legend.box = "vertical",
         legend.spacing.y = unit(0, "lines"),
-        strip.text.y = element_blank())
+        strip.text.y = element_blank(),
+        strip.background = element_rect(colour = "white", size = 0.8))
 
-png("figures/BACI_sl_slopes.png", 30000/8, 27000/8, "px", res = 600/8)
+png("figures/BACI_sl_slopes.png", 30000/8, 28000/8, "px", res = 600/8)
 G
 dev.off()
 
@@ -104,7 +110,8 @@ dev.off()
 #         legend.key.size = unit(5, 'lines'),
 #         legend.box = "vertical",
 #         legend.spacing.y = unit(0, "lines"),
-#         strip.text.y = element_blank())
+#         strip.text.y = element_blank(),
+#         strip.background = element_rect(colour="white", size = 0.8))
 # 
 # png("figures/BACI_sl_probs.png", 30000/8, 27500/8, "px", res = 600/8)
 # P
@@ -123,7 +130,7 @@ q2b <- geom_errorbar(aes(ymin = BACI_gl$ecdf - 1, ymax = 0),
                      position = position_dodge(0.5),
                      size = 5,                  
                      width = 0)
-q3 <- facet_grid(vars(group), vars(ref, indicator), "free", scales = "free")
+q3 <- facet_nested(vars(group), vars(ref, indicator), "free", scales = "free")
 Q <- q1 +
   geom_hline(yintercept = 0, size = 2, color = "darkgrey") +
   scale_y_continuous(breaks = c(-1, -0.5, 0, 0.5, 1),
@@ -140,7 +147,8 @@ Q <- q1 +
         legend.title = element_blank(),
         legend.key.size = unit(5, 'lines'),
         legend.box = "vertical",
-        legend.spacing.y = unit(0, "lines"))
+        legend.spacing.y = unit(0, "lines"),
+        strip.background = element_rect(colour = "white", size = 0.8))
 
 png("figures/BACI_gl_probs.png", 30000/8, 20000/8, "px", res = 600/8)
 Q
