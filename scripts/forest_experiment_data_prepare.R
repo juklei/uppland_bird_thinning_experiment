@@ -26,7 +26,7 @@ levels(forest$block)[c(2,3,7,10)] <- "sigtuna"
 ##    and calculate differences due to treatments.
 
 ## Exclude unneeded varables:
-f_red <- as.data.table(forest[,c(1:3,19:length(forest))])
+f_red <- as.data.table(forest[,c(1:5,18:length(forest))])
 
 ## Calculate percentages:
 f_red$perc_gran <- f_red$nr_gran/f_red$nr_all_alive
@@ -59,7 +59,7 @@ diff <- f_diff[f_diff$experiment == "after",] -
         f_diff[f_diff$experiment == "before",]
 
 ## Replace name variables in the new file with the unique values from above:
-diff[,c(1:2,16)] <- unique(f_diff[,c(1:2,16)])
+diff[, c(1:2, 4:5)] <- unique(f_diff[, c(1:2, 4:5)])
 diff$experiment <- as.character(diff$experiment)
 diff$experiment <- "difference"
 
@@ -77,8 +77,8 @@ f_red <- rbind(f_red, T1)
 
 ## Replace NAs in the combination after*control|tc with before*control|tc
 F1 <- function(x){
-  x[x$treatment %in% c("C", "TC") & x$experiment == "after", c(3:13, 17:26)] <- 
-    x[x$treatment %in% c("C", "TC") & x$experiment == "before", c(3:13, 17:26)]
+  x[x$treatment %in% c("C", "TC") & x$experiment == "after", 5:28] <- 
+    x[x$treatment %in% c("C", "TC") & x$experiment == "before", 5:28]
   return(x)
 }
 f_raw <- f_red[, F1(.SD), by = "plot"]

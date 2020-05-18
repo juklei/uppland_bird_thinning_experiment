@@ -24,12 +24,12 @@ head(forest)
 ## 3. Analyse similarity of treatments before ----------------------------------
 
 ## We want to compare the treatments only from before:
-f_before <- forest[forest$experiment == "before", c(1, 14:16, 23:27)]
+f_before <- forest[forest$experiment == "before", c(1, 4, 16:19, 25:29)]
 
 ## Now analyse for all the forest variables the differences between the 
 ## treatments:
 before_stat <- vector("list", length = length(f_before)-2)
-names(before_stat) <- colnames(f_before)[c(-1, -4)]
+names(before_stat) <- colnames(f_before)[c(-1, -2)]
 for(i in names(before_stat)){
   temp <- na.omit(f_before[, c(i, "treatment", "block"), with = FALSE])
   f <- as.formula(paste(i, "treatment", sep = " ~ "))
@@ -53,7 +53,7 @@ gg_data_1 <- melt.list(bs_coeff)
 gg_data_1 <- dcast(gg_data_1, X1 + L1 ~ X2, value.var = "value")
 levels(gg_data_1$X1) <- c("Complete retention", 
                           "Conventional thinning", 
-                          "Control", 
+                          "No forestry", 
                           "Understory retention thinning")
 gg_data_1$exp <- "Before"
 
@@ -62,12 +62,12 @@ gg_data_1$exp <- "Before"
 ## We want to compare the treatments only after the treatment:
 f_after <- forest[forest$experiment == "after" & 
                     forest$treatment %in% c("T", "URT"), 
-                  c(1, 14:16, 23:27)]
+                  c(1, 4, 16:19, 25:29)]
 
 ## Now analyse for all the forest variables the differences between the 
 ## treatments:
 after_stat <- vector("list", length = length(f_after)-2)
-names(after_stat) <- colnames(f_after)[c(-1, -4)]
+names(after_stat) <- colnames(f_after)[c(-1, -2)]
 for(i in names(after_stat)){
   temp <- na.omit(f_after[, c(i, "treatment", "block"), with = FALSE])
   f <- as.formula(paste(i, "treatment", sep = " ~ "))
@@ -115,12 +115,14 @@ levels(gg_data$L1) <- c("Basal area (BA)",
                         "BA deciduous", 
                         "BA pine", 
                         "Visibility (m)", 
-                        "Nr. umbr. spruce")
+                        "Nr. umbr. spruce",
+                        "Std. dev. DBH",
+                        "Nr. tree species")
 colnames(gg_data)[5] <- "Std.Error"
 
 ## Adjust level order:
 gg_data$X1 <- factor(gg_data$X1, 
-                       levels = c("Control",
+                       levels = c("No forestry",
                                   "Complete retention", 
                                   "Understory retention thinning",
                                   "Conventional thinning"))
@@ -140,7 +142,7 @@ G1 <- ggplot(gg_data, aes(x = X1, y = Estimate, color = X1)) +
   theme(legend.position = "none",
         axis.text.x = element_text(angle = 45, hjust = 1))
 
-png("figures/forest_var.png", 4000/8, 15000/8, "px", res = 600/8)
+png("figures/forest_var.png", 4000/8, 18000/8, "px", res = 600/8)
 G1
 dev.off()
 
