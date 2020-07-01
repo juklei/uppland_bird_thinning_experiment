@@ -21,10 +21,15 @@ require(reshape2)
 forest <- as.data.table(read.csv("clean/forest_experiment_data.csv"))
 head(forest)
 
+forest$perc_BA_spruce <- forest$BA_gran/forest$BA*100
+forest$perc_BA_pine <- forest$BA_tall/forest$BA*100
+forest$perc_BA_dec <- forest$BA_lov/forest$BA*100
+forest$perc_BA_dw <- forest$BA_dv/forest$BA*100
+
 ## 3. Analyse similarity of treatments before ----------------------------------
 
 ## We want to compare the treatments only from before:
-f_before <- forest[forest$experiment == "before", c(1, 4, 16:19, 25:29)]
+f_before <- forest[forest$experiment == "before", c(1, 4, 16:19, 29:33)]
 
 ## Now analyse for all the forest variables the differences between the 
 ## treatments:
@@ -49,12 +54,9 @@ anova.create.1 <- function(x){
 bs_coeff <- lapply(bs_coeff, anova.create.1)
 
 ## Make graphing data frame:
-gg_data_1 <- melt.list(bs_coeff)
-gg_data_1 <- dcast(gg_data_1, X1 + L1 ~ X2, value.var = "value")
-levels(gg_data_1$X1) <- c("Complete retention", 
-                          "Conventional thinning", 
-                          "No forestry", 
-                          "Understory retention thinning")
+gg_data_1 <- melt(bs_coeff)
+gg_data_1 <- dcast(gg_data_1, Var1 + L1 ~ Var2, value.var = "value")
+levels(gg_data_1$Var1) <- c("CR", "CT", "NF", "URT")
 gg_data_1$exp <- "Before"
 
 ## 4. Analyse similarity of treatments after -----------------------------------
@@ -62,7 +64,7 @@ gg_data_1$exp <- "Before"
 ## We want to compare the treatments only after the treatment:
 f_after <- forest[forest$experiment == "after" & 
                     forest$treatment %in% c("T", "URT"), 
-                  c(1, 4, 16:19, 25:29)]
+                  c(1, 4, 16:19, 29:33)]
 
 ## Now analyse for all the forest variables the differences between the 
 ## treatments:
@@ -87,10 +89,9 @@ anova.create.2 <- function(x){
 ba_coeff <- lapply(ba_coeff, anova.create.2)
 
 ## Make graphing data frame and rename levels:
-gg_data_2 <- melt.list(ba_coeff)
-gg_data_2 <- dcast(gg_data_2, X1 + L1 ~ X2, value.var = "value")
-levels(gg_data_2$X1) <- c("Conventional thinning", 
-                          "Understory retention thinning")
+gg_data_2 <- melt(ba_coeff)
+gg_data_2 <- dcast(gg_data_2, Var1 + L1 ~ Var2, value.var = "value")
+levels(gg_data_2$Var1) <- c("CT", "URT")
 gg_data_2$exp <- "After"
 
 ## 5. Make a table and figure --------------------------------------------------
@@ -103,33 +104,28 @@ table_data <- gg_data
 table_data$est_CI <- paste0(round(table_data$Estimate, 2), " (",
                             round(table_data$`Std. Error`*1.96, 2), ")")
 
-dcast(table_data, exp + X1 ~ L1, value.var = "est_CI") %>%
+dcast(table_data, exp + Var1 ~ L1, value.var = "est_CI") %>%
 write.csv(., "results/forest_var_table.csv", row.names = FALSE)
 
 ## Make graph:
 
 gg_data$L1 <- as.factor(gg_data$L1)
-levels(gg_data$L1) <- c("Basal area (BA)", 
-                        "BA dead wood", 
-                        "BA spruce", 
-                        "BA deciduous", 
-                        "BA pine", 
-                        "Visibility (m)", 
-                        "Nr. umbr. spruce",
-                        "Std. dev. DBH",
-                        "Nr. tree species")
-colnames(gg_data)[5] <- "Std.Error"
+levels(gg_data$L1) <- c("Basal area (BA)", "Visibility (m)", "Nr. umbr. spruce",
+                        "BA: % deciduous", "BA: % dead wood", "BA: % pine", 
+                        "BA: % spruce", "Std. dev. DBH", "Nr. tree species")
+gg_data$L1 <- factor(gg_data$L1, 
+                     levels = c("Basal area (BA)", "BA: % spruce", "BA: % pine",
+                                "BA: % deciduous", "BA: % dead wood", 
+                                "Nr. umbr. spruce", "Nr. tree species",
+                                "Std. dev. DBH", "Visibility (m)"))
+colnames(gg_data)[4] <- "Std.Error"
 
 ## Adjust level order:
-gg_data$X1 <- factor(gg_data$X1, 
-                       levels = c("No forestry",
-                                  "Complete retention", 
-                                  "Understory retention thinning",
-                                  "Conventional thinning"))
+gg_data$Var1 <- factor(gg_data$Var1, levels = c("NF","CR", "URT","CT"))
 gg_data$exp <- factor(gg_data$exp, levels = c("Before", "After"))
 
 ## Make graph:
-G1 <- ggplot(gg_data, aes(x = X1, y = Estimate, color = X1)) +
+G1 <- ggplot(gg_data, aes(x = Var1, y = Estimate, color = Var1)) +
   geom_errorbar(aes(ymin = Estimate - 1.96*Std.Error, 
                     ymax = Estimate + 1.96*Std.Error),
                 size = 5, 
@@ -140,9 +136,9 @@ G1 <- ggplot(gg_data, aes(x = X1, y = Estimate, color = X1)) +
   scale_colour_manual(values = c("grey", "#00AFBB", "#E7B800", "#FC4E07")) +
   theme_light(30) + 
   theme(legend.position = "none",
-        axis.text.x = element_text(angle = 45, hjust = 1))
+        axis.text.x = element_text(angle = 45, hjust = 1, size = 35))
 
-png("figures/forest_var.png", 4000/8, 18000/8, "px", res = 600/8)
+png("figures/forest_var_new.png", 4000/8, 18000/8, "px", res = 600/8)
 G1
 dev.off()
 
