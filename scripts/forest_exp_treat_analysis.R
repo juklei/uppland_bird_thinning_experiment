@@ -26,10 +26,12 @@ forest$perc_BA_pine <- forest$BA_tall/forest$BA*100
 forest$perc_BA_dec <- forest$BA_lov/forest$BA*100
 forest$perc_BA_dw <- forest$BA_dv/forest$BA*100
 
+forest$cov <- forest$sd_dbh_all_alive/forest$average_dbh_all_alive
+
 ## 3. Analyse similarity of treatments before ----------------------------------
 
 ## We want to compare the treatments only from before:
-f_before <- forest[forest$experiment == "before", c(1, 4, 16:19, 29:33)]
+f_before <- forest[forest$experiment == "before", c(1, 4, 17:19, 29:34)]
 
 ## Now analyse for all the forest variables the differences between the 
 ## treatments:
@@ -64,7 +66,7 @@ gg_data_1$exp <- "Before"
 ## We want to compare the treatments only after the treatment:
 f_after <- forest[forest$experiment == "after" & 
                     forest$treatment %in% c("T", "URT"), 
-                  c(1, 4, 16:19, 29:33)]
+                  c(1, 4, 17:19, 29:34)]
 
 ## Now analyse for all the forest variables the differences between the 
 ## treatments:
@@ -110,14 +112,14 @@ write.csv(., "results/forest_var_table.csv", row.names = FALSE)
 ## Make graph:
 
 gg_data$L1 <- as.factor(gg_data$L1)
-levels(gg_data$L1) <- c("Basal area (BA)", "Visibility (m)", "Nr. umbr. spruce",
-                        "BA: % deciduous", "BA: % dead wood", "BA: % pine", 
-                        "BA: % spruce", "Std. dev. DBH", "Nr. tree species")
+levels(gg_data$L1) <- c("Basal area (BA)", "CoV DBH", "Visibility (m)", 
+                        "No. u. spruce", "BA: % deciduous", "BA: % dead wood", 
+                        "BA: % pine", "BA: % spruce", "No. tree species")
 gg_data$L1 <- factor(gg_data$L1, 
                      levels = c("Basal area (BA)", "BA: % spruce", "BA: % pine",
                                 "BA: % deciduous", "BA: % dead wood", 
-                                "Nr. umbr. spruce", "Nr. tree species",
-                                "Std. dev. DBH", "Visibility (m)"))
+                                "No. u. spruce", "No. tree species",
+                                "CoV DBH", "Visibility (m)"))
 colnames(gg_data)[4] <- "Std.Error"
 
 ## Adjust level order:
