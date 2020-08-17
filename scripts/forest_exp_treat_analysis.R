@@ -56,9 +56,9 @@ anova.create.1 <- function(x){
 bs_coeff <- lapply(bs_coeff, anova.create.1)
 
 ## Make graphing data frame:
-gg_data_1 <- melt(bs_coeff)
+gg_data_1 <- reshape2::melt(bs_coeff)
 gg_data_1 <- dcast(gg_data_1, Var1 + L1 ~ Var2, value.var = "value")
-levels(gg_data_1$Var1) <- c("CR", "CT", "NF", "URT")
+levels(gg_data_1$Var1) <- c("CplRet", "ConvT", "NoFor", "UstRetT")
 gg_data_1$exp <- "Before"
 
 ## 4. Analyse similarity of treatments after -----------------------------------
@@ -91,9 +91,9 @@ anova.create.2 <- function(x){
 ba_coeff <- lapply(ba_coeff, anova.create.2)
 
 ## Make graphing data frame and rename levels:
-gg_data_2 <- melt(ba_coeff)
+gg_data_2 <- reshape2::melt(ba_coeff)
 gg_data_2 <- dcast(gg_data_2, Var1 + L1 ~ Var2, value.var = "value")
-levels(gg_data_2$Var1) <- c("CT", "URT")
+levels(gg_data_2$Var1) <- c("ConvT", "UstRetT")
 gg_data_2$exp <- "After"
 
 ## 5. Make a table and figure --------------------------------------------------
@@ -113,17 +113,17 @@ write.csv(., "results/forest_var_table.csv", row.names = FALSE)
 
 gg_data$L1 <- as.factor(gg_data$L1)
 levels(gg_data$L1) <- c("Basal area (BA)", "CoV DBH", "Visibility (m)", 
-                        "No. u. spruce", "BA: % deciduous", "BA: % dead wood", 
+                        "No. u. spruce / ha", "BA: % deciduous", "BA: % dead wood", 
                         "BA: % pine", "BA: % spruce", "No. tree species")
 gg_data$L1 <- factor(gg_data$L1, 
                      levels = c("Basal area (BA)", "BA: % spruce", "BA: % pine",
                                 "BA: % deciduous", "BA: % dead wood", 
-                                "No. u. spruce", "No. tree species",
+                                "No. u. spruce / ha", "No. tree species",
                                 "CoV DBH", "Visibility (m)"))
 colnames(gg_data)[4] <- "Std.Error"
 
 ## Adjust level order:
-gg_data$Var1 <- factor(gg_data$Var1, levels = c("NF","CR", "URT","CT"))
+gg_data$Var1 <- factor(gg_data$Var1, levels = c("NoFor","CplRet", "UstRetT","ConvT"))
 gg_data$exp <- factor(gg_data$exp, levels = c("Before", "After"))
 
 ## Make graph:
@@ -138,7 +138,7 @@ G1 <- ggplot(gg_data, aes(x = Var1, y = Estimate, color = Var1)) +
   scale_colour_manual(values = c("grey", "#00AFBB", "#E7B800", "#FC4E07")) +
   theme_light(30) + 
   theme(legend.position = "none",
-        axis.text.x = element_text(angle = 45, hjust = 1, size = 35))
+        axis.text.x = element_text(angle = 60, hjust = 1, size = 35))
 
 png("figures/forest_var_new.png", 4000/8, 18000/8, "px", res = 600/8)
 G1

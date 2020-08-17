@@ -22,6 +22,13 @@ head(forest)
 ## Combines Sönkes blocks to one:
 levels(forest$block)[c(2,3,7,10)] <- "sigtuna"
 
+## Its not justified to use plot 30, 118, 120 and 121 as true controls as they
+## are located too close to the thinning stands:
+forest <- forest[!forest$plot %in% c("plot_30",
+                                     "plot_118", 
+                                     "plot_120", 
+                                     "plot_121"), ]
+
 ## 3. Reduce data set to needed variables, claculate percentages, --------------
 ##    and calculate differences due to treatments.
 
@@ -47,6 +54,9 @@ f_red$BA_dv <- (f_red$average_dbh_staende_dodved/200)^2*pi*f_red$nr_staende_dodv
 f_red$BA_dv <- f_red$BA_dv/(10^2*pi*3/10000)
 f_red$BA <- (f_red$average_dbh_all_alive/200)^2*pi*f_red$nr_all_alive
 f_red$BA <- f_red$BA/(10^2*pi*3/10000)
+
+## Calculate the number of understory spruces per hectare:
+f_red$nr_skarm <- f_red$nr_skarm/(10^2*pi*3/10000)
 
 ## Calculate differences:
 

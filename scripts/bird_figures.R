@@ -7,7 +7,7 @@
 
 ## 1. Clear environment and load libraries -------------------------------------
 
-rm(list = ls())
+# rm(list = ls())
 
 require("ggplot2")
 require("data.table")
@@ -77,7 +77,7 @@ G <- g1 +
         strip.text.y = element_blank(),
         strip.background = element_rect(colour = "white", size = 0.8))
 
-png("figures/BACI_sl_slopes.png", 30000/8, 28000/8, "px", res = 600/8)
+png("figures/BACI_sl_slopes_new.png", 30000/8, 28000/8, "px", res = 600/8)
 G
 dev.off()
 
@@ -150,7 +150,7 @@ Q <- q1 +
         legend.spacing.y = unit(0, "lines"),
         strip.background = element_rect(colour = "white", size = 0.8))
 
-png("figures/BACI_gl_probs.png", 30000/8, 20000/8, "px", res = 600/8)
+png("figures/BACI_gl_probs_new.png", 30000/8, 20000/8, "px", res = 600/8)
 Q
 dev.off()
 
