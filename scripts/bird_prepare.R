@@ -27,12 +27,16 @@ head(occ); head(ldm)
 ##    AHM book on p. 662. Instead of J indexed on site we want to index it on 
 ##    the species depending on wether it is long distance migrant or not.
 
+## Its not justified to use plot 30, 118, 120 and 121 as true controls as they
+## are located too close to the thinning stands:
+OCC <- OCC[!OCC$plot %in% c("plot_30", "plot_118", "plot_120", "plot_121"), ]
+
 ## Exclude predators, birds with large hr and passers from obs:
 occ <- OCC[!OCC$species %in% c("bergk", "duvhk", "ormvk", "ekore", 
                                "gravg", "grona", "korp", "mard", 
                                "mindb", "spark", "tjadr", "morka", 
                                "spila", "gok", "grong", "jarpe",
-                               "kraka"), ]
+                               "kraka", "stort", "ringa", "notsa", "notka"), ]
 
 ## Chose relevant columns for this analysis:
 occ <- droplevels(occ[, c("observer",
@@ -132,7 +136,7 @@ occ <- droplevels(OCC[!OCC$species %in% c("bergk", "duvhk", "ormvk", "ekore",
                                           "gravg", "grona", "korp", "mard", 
                                           "mindb", "spark", "tjadr", "morka", 
                                           "spila", "gok", "grong", "jarpe",
-                                          "kraka"),])
+                                          "kraka", "stort", "ringa", "notsa", "notka"), ])
 
 ## Make data set so we have all possible combinations of all visits
 ## and all species seen during the whole survey.

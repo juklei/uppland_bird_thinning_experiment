@@ -1,7 +1,7 @@
 ## model birds in a hierarchical model
 ## 
 ## First edit: 20191201
-## Last edit: 20200502
+## Last edit: 20200520
 ##
 ## Author: Julian Klein
 
@@ -23,9 +23,16 @@ library(data.table)
 ## 2. Load data and define functions -------------------------------------------
 
 occ <- read.csv("data/occ_2016to2019.csv")
+occ <- occ[!occ$plot %in% c("plot_30", "plot_118", "plot_120", "plot_121"), ]
+
 bpo <- read.csv("clean/bpo_double.csv")
 forest <- read.csv("clean/forest_experiment_data_JAGS.csv")
+
+# ## Combine söderlejde and halqved to one block:
+# levels(forest$block)[2] <- "soderlejde"
+
 bird_data <- read.csv("data/bird_data.csv")
+bird_data <- droplevels(bird_data[bird_data$short %in% bpo$species, ])
 
 ## Function to summarise BACI results:
 posterior_summary <- function(x){
@@ -46,9 +53,9 @@ capture.output(occ[occ$species %in% levels(bpo$species),
                    list("mean" = mean(minutes_to_obs),
                         "se" = sd(minutes_to_obs)/sqrt(nrow(.SD)),
                         "ttest_p_value" = ttest_calc(.SD),
-                        "N" = nrow(.SD)), 
-                   by = "species"]) %>% 
-  write(., "results/time_of_first_occurrence.txt")
+                        "N" = nrow(.SD)),
+                   by = "species"]) %>%
+  write(., "results/time_of_first_occurrence_red.txt")
   
 ## 4. Prepare data for experiment analysis -------------------------------------
 
@@ -138,44 +145,44 @@ jm <- parJagsModel(cl = cl,
 
 parUpdate(cl = cl, object = "bpo_bin", n.iter = 10000)
 
-samples <- 500000
-n.thin <- 500
+samples <- 100000
+n.thin <- 100
 
 zc1 <- parCodaSamples(cl = cl, model = "bpo_bin",
                       variable.names = c("mu_a_pdet", "sd_a_pdet",
                                          "mu_b_pdet_2018", "sd_b_pdet_2018",
                                          "mu_b_pdet_2019", "sd_b_pdet_2019",
-                                         "mu_obs", "sd_obs", 
+                                         "mu_obs", "sd_obs",
                                          "sd_OLRE",
-                                         "mu_a_pocc", "sd_a_pocc", 
+                                         "mu_a_pocc", "sd_a_pocc",
                                          "mu_b_pocc_2018", "sd_b_pocc_2018",
                                          "mu_b_pocc_2019", "sd_b_pocc_2019",
-                                         "param_sd_block"),
+                                         "sd_block"),
                       n.iter = samples, thin = n.thin)
 
-# zc2 <- parCodaSamples(cl = cl, model = "bpo_bin",
-#                       variable.names = c("a_pdet", "a_pocc"),
-#                       n.iter = samples, thin = n.thin)
+zc2 <- parCodaSamples(cl = cl, model = "bpo_bin",
+                      variable.names = "det_out",
+                      n.iter = samples, thin = n.thin)
 
 ## Export parameter estimates:
 capture.output(summary(zc1), HPDinterval(zc1, prob = 0.95)) %>% 
-  write(., "results/hyperparams_ref_control.txt")
-# capture.output(summary(zc2), HPDinterval(zc2, prob = 0.95)) %>%
-#   write(., "results/params_ref_control.txt")
+  write(., "results/hyperparams_red.txt")
+capture.output(bird_data$long, summary(zc2), HPDinterval(zc2, prob = 0.95)) %>%
+  write(., "results/params_red.txt")
 
 ## 6. Validate the model and export validation data and figures ----------------
 
-pdf("figures/plot_hparams_ref_control.pdf"); plot(zc1); gelman.plot(zc1); dev.off()
-# pdf("figures/plot_params_ref_control.pdf"); plot(zc2); gelman.plot(zc2); dev.off()
+pdf("figures/plot_hparams_red.pdf"); plot(zc1); gelman.plot(zc1); dev.off()
+pdf("figures/plot_params_red.pdf"); plot(zc2); gelman.plot(zc2); dev.off()
 
 capture.output(raftery.diag(zc1), 
                heidel.diag(zc1), 
                gelman.diag(zc1),
                cor(data.frame(combine.mcmc(zc1)))) %>% 
-  write(., "results/diagn_hparams_ref_control.txt")
-# capture.output(raftery.diag(zc2),
-#                heidel.diag(zc2),
-#                gelman.diag(zc2)) %>% write(., "results/dign_params_ref_control.txt")
+  write(., "results/diagn_hparams_red.txt")
+capture.output(raftery.diag(zc2),
+               heidel.diag(zc2),
+               gelman.diag(zc2)) %>% write(., "results/dign_params_red.txt")
 
 # ## Produce validation metrics:
 # zc3 <- parCodaSamples(cl = cl, model = "bpo_bin",
@@ -230,8 +237,8 @@ zc_post2 <- parCodaSamples(cl = cl, model = "bpo_bin",
                            variable.names = "a_pocc",
                            n.iter = samples,
                            thin = n.thin)
-save(zc_post2, file = "temp/zc_post2.r")
-load("temp/zc_post2.r")
+save(zc_post2, file = "temp/zc_post2_red.r")
+load("temp/zc_post2_red.r")
 zcp2 <- combine.mcmc(zc_post2, collapse.chains = TRUE) 
 
 ## Transform values to the probability scale because a logistic GLMM was used:
@@ -269,7 +276,7 @@ eval <- c(2, 4); ref <- 1
 # 
 # ## Calculate results:
 # BACI_div <- apply(BACI_out1, c(2, 3, 4), posterior_summary)
-# BACI_div <- dcast(data.table::melt(BACI_div), Var2 + Var3 + Var4 ~ Var1)
+# BACI_div <- dcast(melt(BACI_div), Var2 + Var3 + Var4 ~ Var1)
 # 
 # ## Add naming for figures later on:
 # BACI_div$ref <- paste0("ref_", levels(forest$treatment)[ref])
@@ -288,7 +295,7 @@ if(ref == 3){
   treat_comp <- apply(a_zcp2t[,,,1], c(1,2), function(x) x[ref] - mean(x[eval]))
   treat_comp <- apply(treat_comp, 2, posterior_summary)
   treat_comp <- cbind("species" = bird_data$long, as.data.frame(t(treat_comp)))
-  write.csv(treat_comp, "results/treatment_comparison.csv", row.names = FALSE)
+  write.csv(treat_comp, "results/treatment_comparison_red.csv", row.names = FALSE)
 }
 
 ## Calculate the BACI indicators for all species and for all iterations: -------
@@ -315,7 +322,7 @@ dim(cm) <- c(nrow(a_zcp2t), 1, length(eval), 3)
 dimnames(cm)[2] <- list("Community mean")
 BACI_sl <- abind::abind(BACI_sl, cm, along = 2)
 BACI_sl <- apply(BACI_sl, c(2, 3, 4), posterior_summary)
-BACI_sl <- dcast(data.table::melt(BACI_sl), Var2 + Var3 + Var4 ~ Var1)
+BACI_sl <- dcast(melt(BACI_sl), Var2 + Var3 + Var4 ~ Var1)
 
 ## Add naming for figures later on:
 BACI_sl$ref <- paste0("ref_", levels(forest$treatment)[ref])
@@ -323,22 +330,22 @@ colnames(BACI_sl)[1:3] <- c("species", "treatment", "indicator")
 
 ## Export BACI_sl and adjust name according to the chosen reference:
 write.csv(BACI_sl, 
-          paste0("clean/BACI_sl_ref_", 
-                 ifelse(ref == 3, "control", "CR"), 
+          paste0("clean/BACI_sl_red_ref_", 
+                 ifelse(ref == 3, "NF", "CR"), 
                  ".csv"),
           row.names = FALSE)
 
 ## Calculate guild results: ----------------------------------------------------
 bird_data$numeric <- as.numeric(bird_data$short) ## Numeric according to "short"
-BACI_gl <- data.table::melt(bird_data[, c(2, 4:9)], 
-                            id.vars = c("long", "numeric"),
-                            variable.name = "group",
-                            value.name = "guild")
+BACI_gl <- melt(bird_data[, c(2, 4:9)], 
+                id.vars = c("long", "numeric"),
+                variable.name = "group",
+                value.name = "guild")
 BACI_gl <- as.data.table(BACI_gl)
 gl_calc <- function(x){
   T1 <- apply(BACI_out2[,x$numeric,,], c(1, 3, 4), mean)
   T1 <- apply(T1, c(2, 3), posterior_summary)
-  T1 <- dcast(data.table::melt(T1), Var2 + Var3 ~ Var1)
+  T1 <- dcast(melt(T1), Var2 + Var3 ~ Var1)
   return(T1)
 }
 BACI_gl <- BACI_gl[, gl_calc(.SD), by = c("group", "guild")]
@@ -349,8 +356,8 @@ colnames(BACI_gl)[3:4] <- c("treatment", "indicator")
 
 ## Export BACI_gl and adjust name according to the chosen reference
 write.csv(BACI_gl, 
-          paste0("clean/BACI_gl_ref_", 
-                 ifelse(ref == 3, "control", "CR"), 
+          paste0("clean/BACI_gl_red_ref_", 
+                 ifelse(ref == 3, "NF", "CR"), 
                  ".csv"),
           row.names = FALSE)
 

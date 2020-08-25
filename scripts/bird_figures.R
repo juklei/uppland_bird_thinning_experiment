@@ -17,10 +17,10 @@ require("ggh4x")
 ## 2. Load and prepare data ----------------------------------------------------
 
 bird_data <- read.csv("data/bird_data.csv")
-BACI_sl_NF <- read.csv("clean/BACI_sl_ref_NF.csv")
-BACI_gl_NF <- read.csv("clean/BACI_gl_ref_NF.csv")
-BACI_sl_CR <- read.csv("clean/BACI_sl_ref_CR.csv")
-BACI_gl_CR <- read.csv("clean/BACI_gl_ref_CR.csv")
+BACI_sl_NF <- read.csv("clean/BACI_sl_red_ref_NF.csv")
+BACI_gl_NF <- read.csv("clean/BACI_gl_red_ref_NF.csv")
+BACI_sl_CR <- read.csv("clean/BACI_sl_red_ref_CR.csv")
+BACI_gl_CR <- read.csv("clean/BACI_gl_red_ref_CR.csv")
 
 ## Exclude URT from NF controls:
 BACI_sl_NF <- droplevels(BACI_sl_NF[BACI_sl_NF$treatment != "URT", ])
@@ -68,6 +68,8 @@ G <- g1 +
   xlab("") + ylab("Indicator value for probability of occurrence") + 
   coord_flip() +
   scale_colour_manual(values = c("#00AFBB", "#FC4E07", "#E7B800")) +
+  scale_y_continuous(breaks = c(-1, -0.5, 0, 0.5, 1),
+                     labels = c("-1", "-.5", "0", ".5", "1")) +
   theme_light(70) +
   theme(legend.position = "top",
         legend.title = element_blank(),
@@ -77,7 +79,7 @@ G <- g1 +
         strip.text.y = element_blank(),
         strip.background = element_rect(colour = "white", size = 0.8))
 
-png("figures/BACI_sl_slopes_new.png", 30000/8, 28000/8, "px", res = 600/8)
+png("figures/BACI_sl_red_slopes_new.png", 33000/8, 25000/8, "px", res = 600/8)
 G
 dev.off()
 
@@ -119,6 +121,35 @@ dev.off()
 
 ## 4. Make graphs for guilds & trends ------------------------------------------
 
+## Graph for slopes:
+
+h1 <- ggplot(BACI_gl, aes(guild, X50., colour = treatment, fill = treatment))
+h2 <- geom_errorbar(aes(ymin = X2.5., ymax = X97.5.), 
+                    size = 5, 
+                    width = 0, 
+                    position = position_dodge(0.6))
+h3 <- geom_point(position = position_dodge(0.6), size = 7, colour = "black")
+h4 <- facet_nested(vars(group), vars(ref, indicator), "free", scales = "free")
+H <- h1 +
+  geom_hline(yintercept = 0, size = 2, color = "darkgrey") +
+  h2 + h3 + h4 +
+  xlab("") + ylab("Indicator value for probability of occurrence") + 
+  coord_flip() +
+  scale_colour_manual(values = c("#00AFBB", "#FC4E07", "#E7B800")) +
+  scale_y_continuous(breaks = c(-1, -0.5, 0, 0.5, 1),
+                     labels = c("-1", "-.5", "0", ".5", "1")) +
+  theme_light(70) +
+  theme(legend.position = "top", 
+        legend.title = element_blank(),
+        legend.key.size = unit(5, 'lines'),
+        legend.box = "vertical",
+        legend.spacing.y = unit(0, "lines"),
+        strip.background = element_rect(colour = "white", size = 0.8))
+
+png("figures/BACI_gl_red_slopes_new.png", 31000/8, 19000/8, "px", res = 600/8)
+H
+dev.off()
+
 ## Graph for probabilies:
 
 q1 <- ggplot(data = BACI_gl, aes(x = guild, y = 0, colour = treatment))
@@ -150,7 +181,7 @@ Q <- q1 +
         legend.spacing.y = unit(0, "lines"),
         strip.background = element_rect(colour = "white", size = 0.8))
 
-png("figures/BACI_gl_probs_new.png", 30000/8, 20000/8, "px", res = 600/8)
+png("figures/BACI_gl_red_probs_new.png", 30000/8, 20000/8, "px", res = 600/8)
 Q
 dev.off()
 

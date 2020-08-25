@@ -33,7 +33,8 @@ model{
 
   ## Group effects:
   for(k in 1:max(species)){
-    for(b in 1:max(block)){e_block[k,b] ~ dnorm(0, 1/sd_block[k]^2)}
+    # for(b in 1:max(block)){e_block[k,b] ~ dnorm(0, 1/sd_block[k]^2)}
+    for(b in 1:max(block)){e_block[k,b] ~ dnorm(0, 1/sd_block^2)}
   }
   
   ## 2. Priors: ----------------------------------------------------------------
@@ -55,32 +56,33 @@ model{
       }}
     b_pocc_2018[k] ~ dnorm(mu_b_pocc_2018, 1/sd_b_pocc_2018^2)
     b_pocc_2019[k] ~ dnorm(mu_b_pocc_2019, 1/sd_b_pocc_2019^2)
-    sd_block[k] ~ dt(0, pow(param_sd_block,-2), 1)T(0,)
+    # sd_block[k] ~ dt(0, pow(param_sd_block,-2), 1)T(0,)
   }
+  sd_block ~ dt(0, pow(2.5,-2), 1)T(0,)
   
   ## Hyperpriors:
   
   ## Observational model:
-  mu_a_pdet ~ dnorm(0, 0.1)
+  mu_a_pdet ~ dnorm(0, 0.01)
   sd_a_pdet ~ dt(0, pow(2.5,-2), 1)T(0,)
-  mu_b_pdet_2018 ~ dnorm(0, 0.1)
+  mu_b_pdet_2018 ~ dnorm(0, 0.01)
   sd_b_pdet_2018 ~ dt(0, pow(2.5,-2), 1)T(0,)
-  mu_b_pdet_2019 ~ dnorm(0, 0.1)
+  mu_b_pdet_2019 ~ dnorm(0, 0.01)
   sd_b_pdet_2019 ~ dt(0, pow(2.5,-2), 1)T(0,)
-  mu_obs ~ dnorm(0, 0.1)
+  mu_obs ~ dnorm(0, 0.01)
   sd_obs ~ dt(0, pow(2.5,-2), 1)T(0,)
 
   ## Ecological process model:
   for(m in 1:max(treat)){
     for(n in 1:max(exp)){
-      mu_a_pocc[m,n] ~ dnorm(0, 0.1)
+      mu_a_pocc[m,n] ~ dnorm(0, 0.01)
       sd_a_pocc[m,n] ~ dt(0, pow(2.5,-2), 1)T(0,)
-    }}
-  mu_b_pocc_2018 ~ dnorm(0, 0.1)
+  }}
+  mu_b_pocc_2018 ~ dnorm(0, 0.01)
   sd_b_pocc_2018 ~ dt(0, pow(2.5,-2), 1)T(0,)
-  mu_b_pocc_2019 ~ dnorm(0, 0.1)
+  mu_b_pocc_2019 ~ dnorm(0, 0.01)
   sd_b_pocc_2019 ~ dt(0, pow(2.5,-2), 1)T(0,)
-  param_sd_block ~ dt(0, pow(2.5,-2), 1)T(0,)
+  # param_sd_block ~ dunif(0, 5)
 
   # ## 3. Model validation: ------------------------------------------------------
   # 
@@ -106,34 +108,9 @@ model{
   # fit_sim <- sum(sq_sim[])
   # p_fit <- step(fit_sim - fit)
 
-  # ## 4. Posterior caclualtions:
-  # 
-  # ## Backtransform to probability scale:
-  # for(k in 1:max(species)){ 
-  #   for(m in 1:max(treat)){
-  #     for(n in 1:max(exp)){
-  #       logit(pocc_real[k,m,n]) <- a_pocc[k,m,n]
-  # }}}
-  # 
-  # ## Alpha and beta diversity (Jaccard distance):
-  # ## Simulate 2 plots for each m*n:
-  # for(m in 1:max(treat)){
-  #   for(n in 1:max(exp)){
-  #     for(k in 1:max(species)){
-  #       for(q in 1:2){
-  #         sim_occ[k,m,n,q] ~ dbern(pocc_real[k,m,n])
-  #       }
-  #       occ_both[k,m,n] <- sim_occ[k,m,n,1]*sim_occ[k,m,n,2]
-  #     }
-  #     a1[m,n] <- sum(sim_occ[,m,n,1])
-  #     a2[m,n] <- sum(sim_occ[,m,n,2])
-  #     ## Alpha diversity:
-  #     alpha_d[m,n] <- (a1[m,n] + a2[m,n])/2
-  #     ## Beta diversity (Jaccard distance):
-  #     a_both[m,n] <- sum(occ_both[,m,n]) 
-  #     JI[m,n] <- a_both[m,n]/max((a1[m,n] + a2[m,n] - a_both[m,n]), 1E-6)
-  #     beta_d[m,n] <- 1 - JI[m,n]
-  # }}
+  ## 4. Posterior caclualtions:
+
+  for(k in 1:max(species)){logit(det_out[k]) <- a_pdet[k]}
   
 }
 
