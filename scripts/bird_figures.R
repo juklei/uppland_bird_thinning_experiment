@@ -56,11 +56,11 @@ BACI_sl$species <- factor(BACI_sl$species, rev(levels(BACI_sl$species)))
 ## Make figure:
 g1 <- ggplot(BACI_sl, aes(species, X50., colour = treatment, fill = treatment))
 g2 <- geom_errorbar(aes(ymin = X2.5., ymax = X97.5.), 
-                    size = 4, 
+                    size = 5, 
                     width = 0, 
                     # alpha = 0.8,
                     position = position_dodge(0.6))
-g3 <- geom_point(position = position_dodge(0.6), size = 6, colour = "black")
+g3 <- geom_point(position = position_dodge(0.6), size = 7, colour = "black")
 g4 <- facet_nested(vars(cat), vars(ref, indicator), "free", scales = "free")
 G <- g1 +
   geom_hline(yintercept = 0, size = 2, color = "darkgrey") + 
@@ -70,16 +70,18 @@ G <- g1 +
   scale_colour_manual(values = c("#00AFBB", "#FC4E07", "#E7B800")) +
   scale_y_continuous(breaks = c(-1, -0.5, 0, 0.5, 1),
                      labels = c("-1", "-.5", "0", ".5", "1")) +
-  theme_light(70) +
+  theme_light(85) +
   theme(legend.position = "top",
         legend.title = element_blank(),
-        legend.key.size = unit(5, 'lines'),
+        legend.key.size = unit(7, 'lines'),
         legend.box = "vertical",
         legend.spacing.y = unit(0, "lines"),
+        legend.text = element_text(size = 95),
+        axis.title.x = element_text(size = 100),
         strip.text.y = element_blank(),
         strip.background = element_rect(colour = "white", size = 0.8))
 
-png("figures/BACI_sl_red_slopes_new.png", 33000/8, 25000/8, "px", res = 600/8)
+png("figures/BACI_sl_red_slopes_new.png", 40000/8, 30000/8, "px", res = 600/8)
 G
 dev.off()
 
