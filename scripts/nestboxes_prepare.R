@@ -20,8 +20,9 @@ library(reshape2)
 
 dir("data")
 d_nb <- read.csv("data/nestboxes_reproduction.csv")
-
+d_pos <- read.csv("data/ffmf.csv")
 head(d_nb)
+head(d_pos)
 
 ## Remove data from blocks which were visited only at one occasion after the
 ## experiment, because many of these nestboxes have an unknown owner:
@@ -32,11 +33,22 @@ d_nb <- d_nb[!(d_nb$block %in% c("sodersjon", "stocksatra", "kyrkstigen",
 ## Also plot 33 &3 6 in 2019, because they were forgotten:
 d_nb <- d_nb[!(d_nb$plot %in% c("plot_33", "plot_36") & d_nb$year == 2019), ]
 
+
+## Reduce to information required for the model:
+d_nb <- d_nb[d_nb$species %in% c("talgoxe", "sv_flug", "blames", "empty"), 
+             c("plot", "year", "box", "experiment", "treatment", "species")]
+d_nb <- droplevels(d_nb)
+
+## Reduce d_pos to plot, box and coordinates and add to d_nb:
+d_pos <- na.omit(d_pos[, c("plot", "box", "north", "east")])
+d_nb <- merge(d_nb, d_pos, by = c("plot", "box"), all.x = TRUE)
+
 ## 3. Prepare data for the JAGS module -----------------------------------------
 
-d_nb <- d_nb[d_nb$species %in% c("talgoxe", "sv_flug", "blames", "empty"), 
-             c("block", "plot", "year", "experiment", "treatment", "species")]
-d_nb <- droplevels(d_nb)
+## Create a inverse distance matrix for every year:
+dm_2017 <- 1/as.matrix(dist(d_nb[d_nb$year == 2017, c("north", "east")]))
+diag(dm_2017) <- 0
+seq_2017 <- which(d_nb$year == 2017)
 
 ## Response variable matrix with species as rows and observations as columns:
 d_nb$id <- 1:nrow(d_nb)
@@ -46,17 +58,17 @@ occ[] <- ifelse(is.na(occ[]), 0, 1)
 ## Compile data for JAGS:
 data <- list(nobs = nrow(d_nb),
              occ = occ,
-             block = as.numeric(d_nb$block),
              year = d_nb$year - 2016,
              treat = as.numeric(d_nb$treatment),
-             exp = ifelse(d_nb$experiment == "before", 1, 2))
+             exp = ifelse(d_nb$experiment == "before", 1, 2),
+             dm_2017 = dm_2017,
+             seq_2017 = seq_2017)
 
 ## 4. Prepare inits and run the model -------------------------------------------
 
 ## Prepare inits (Remember priors must not overlap, 
 ## i.e. define non-overlapping init):
-i_alpha <- array(c(-5, 0, 5), 
-                 dim = c((ncol(occ)-1), max(data$block), max(data$year)))
+i_alpha <- array(c(-5, 0, 5), dim = c((ncol(occ)-1), max(data$year)))
 i_exp_effect <- array(c(-5, 0, 5), 
                       dim = c((ncol(occ)-1), max(data$treat), max(data$exp)))
 
@@ -78,10 +90,29 @@ cs_1 <- coda.samples(jm, c("alpha", "exp_effect"), 5000, 5)
 
 pdf("figures/nestbox_species.pdf"); plot(cs_1); gelman.plot(cs_1); dev.off()
 
+## Produce validation metrics:
+cs_2 <- jags.samples(jm, c("mean_obs", "mean_sim",
+                           "cv_obs", "cv_sim",
+                           "fit", "fit_sim"), 5000, 5)
+
+pdf("figures/nestbox_species_ppc.pdf")
+par(mfrow = c(2, 2))
+plot(cs_2$mean_obs, cs_2$mean_sim, xlab = "mean real", ylab = "mean simulated")
+abline(0, 1)
+plot(cs_2$cv_obs, cs_2$cv_sim, xlab = "cv real", ylab = "cv simulated")
+abline(0,1)
+plot(cs_2$fit, cs_2$fit_sim, xlab = "ssq real", ylab = "ssq simulated")
+abline(0,1)
+dev.off()
+
+## Morans'I:
+cs_3 <- coda.samples(jm, "I", 5000, 5)
+E0 <- -1/(length(data$seq_2017) - 1)
+pdf("figures/nestbox_species_MI.pdf"); plot(cs_3); dev.off()
+
 ## 6. Export from posterior for graphing and other results ---------------------
 
-cs_2 <- coda.samples(jm, "p_post", 5000, 5)
-
-pdf("figures/nestbox_species_post.pdf"); plot(cs_2); dev.off()
+cs_4 <- coda.samples(jm, "p_post", 5000, 5)
+pdf("figures/nestbox_species_post.pdf"); plot(cs_4); dev.off()
 
 ## -------------------------------END-------------------------------------------
