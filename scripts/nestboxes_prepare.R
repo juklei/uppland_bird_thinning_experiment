@@ -45,15 +45,21 @@ d_nb <- merge(d_nb, d_pos, by = c("plot", "box"), all.x = TRUE)
 
 ## 3. Prepare data for the JAGS module -----------------------------------------
 
-## Create a inverse distance matrix for every year:
-dm_2017 <- 1/as.matrix(dist(d_nb[d_nb$year == 2017, c("north", "east")]))
-diag(dm_2017) <- 0
-seq_2017 <- which(d_nb$year == 2017)
+## Create a inverse distance matrix for calculating Moran's I for every year:
+## Which year for Moran's I?
+y_sel <- 2017
+# y_sel <- 2018
+# y_sel <- 2019
+dm <- d_nb[d_nb$year == y_sel, c("north", "east")]
+dm <- 1/as.matrix(dist(dm))
+diag(dm) <- 0
+seq <- which(d_nb$year == y_sel)
 
 ## Response variable matrix with species as rows and observations as columns:
 d_nb$id <- 1:nrow(d_nb)
 occ <- acast(d_nb, id ~ species)
 occ[] <- ifelse(is.na(occ[]), 0, 1)
+occ <- occ[, c(1, 3, 4, 2)] ## "empty" as last category
 
 ## Compile data for JAGS:
 data <- list(nobs = nrow(d_nb),
@@ -61,8 +67,8 @@ data <- list(nobs = nrow(d_nb),
              year = d_nb$year - 2016,
              treat = as.numeric(d_nb$treatment),
              exp = ifelse(d_nb$experiment == "before", 1, 2),
-             dm_2017 = dm_2017,
-             seq_2017 = seq_2017)
+             dm = dm,
+             seq = seq)
 
 ## 4. Prepare inits and run the model -------------------------------------------
 
@@ -81,21 +87,27 @@ model <- "scripts/JAGS/nestbox_JAGS_species.R"
 
 ## Run and burn in:
 jm <- jags.model(model, data, inits, 3, 5000)
-update(jm, 5000)
+update(jm, 15000)
 
 ## Sample from the parameter posteriors:
-cs_1 <- coda.samples(jm, c("alpha", "exp_effect"), 5000, 5)
+cs_1 <- coda.samples(jm, c("alpha", "exp_effect"), 10000, 10)
 
 ## 5. Validate the model and export validation data and figures ----------------
 
+## Check mixing and convergence:
 pdf("figures/nestbox_species.pdf"); plot(cs_1); gelman.plot(cs_1); dev.off()
 
-## Produce validation metrics:
+## Produce validation metrics for posterior predictive checks:
 cs_2 <- jags.samples(jm, c("mean_obs", "mean_sim",
                            "cv_obs", "cv_sim",
-                           "fit", "fit_sim"), 5000, 5)
+                           "fit", "fit_sim",
+                           "I"), 10000, 10)
 
-pdf("figures/nestbox_species_ppc.pdf")
+## Calculate Moran's I if random spatial distribution of residuals: 
+E0 <- round(-1/(nrow(dm)*3 - 1), 4)
+
+## Export validations as figure:
+pdf("figures/nestbox_species_ppc&MI.pdf")
 par(mfrow = c(2, 2))
 plot(cs_2$mean_obs, cs_2$mean_sim, xlab = "mean real", ylab = "mean simulated")
 abline(0, 1)
@@ -103,16 +115,12 @@ plot(cs_2$cv_obs, cs_2$cv_sim, xlab = "cv real", ylab = "cv simulated")
 abline(0,1)
 plot(cs_2$fit, cs_2$fit_sim, xlab = "ssq real", ylab = "ssq simulated")
 abline(0,1)
+plot(density(cs_2$I), main = paste0("Moran's I, ", y_sel, ", E0 = ", E0))
 dev.off()
-
-## Morans'I:
-cs_3 <- coda.samples(jm, "I", 5000, 5)
-E0 <- -1/(length(data$seq_2017) - 1)
-pdf("figures/nestbox_species_MI.pdf"); plot(cs_3); dev.off()
 
 ## 6. Export from posterior for graphing and other results ---------------------
 
-cs_4 <- coda.samples(jm, "p_post", 5000, 5)
-pdf("figures/nestbox_species_post.pdf"); plot(cs_4); dev.off()
+cs_3 <- coda.samples(jm, "p_post", 10000, 10)
+pdf("figures/nestbox_species_post.pdf"); plot(cs_3); dev.off()
 
 ## -------------------------------END-------------------------------------------

@@ -1,7 +1,7 @@
 ## Nestbox model for nestbox occupancy by species
 ##
 ## First edit: 20200129
-## Last edit: 20200201
+## Last edit: 20200203
 ##
 ## Author: Julian Klein
 
@@ -10,7 +10,7 @@
 
 model{
   
-  ## 1. Likelihood: ------------------------------------------------------------
+  ## 1. Lijelihood: ------------------------------------------------------------
   
   for(i in 1:nobs){
     occ[i,] ~ dmulti(p[i,], 1)
@@ -50,26 +50,30 @@ model{
   cv_obs <- sd(occ[,1:3])/mean_obs
   cv_sim <- sd(sim[,1:3])/mean_sim
   ## Model fit:
-  for(i in 1:nobs){
-    sq[i,1:3] <- (occ[i,1:3] - p[i,1:3])^2
-    sq_sim[i,1:3] <- (sim[i,1:3] - p[i,1:3])^2
-  }
-  fit <- sum(sq[,1:3])
-  fit_sim <- sum(sq_sim[,1:3])
-  ## Autocorrelation (Moran's I) for year 2017 for now:
-  for(k in 1:4){
-    for(q in 1:length(seq_2017)){
-      sq_2017[q,k] <- (occ[seq_2017[q],k] - p[seq_2017[q],k])^2 ## Residuals
-      for(r in 1:length(seq_2017)){
-        ## To the nominator in Moran's I formula:
-        nom[q,r,k] <- dm_2017[q,r]*(sq_2017[q,k] - mean(sq_2017[,k]))*(sq_2017[r,k] - mean(sq_2017[,k]))
-      }
-      ## To the denominator in Moran's I formula:
-      denom[q,k] <- (sq_2017[q,k] - mean(sq_2017[,k]))^2
+  for(j in 1:3){
+    for(i in 1:nobs){
+      sq[i,j] <- (occ[i,j] - p[i,j])^2
+      sq_sim[i,j] <- (sim[i,j] - p[i,j])^2
     }
-    ## Moran's I is calculated:
-    I[k] <- length(seq_2017)*sum(nom[,,k])/(sum(dm_2017[,])*sum(denom[,k]))
+    fit[j] <- sum(sq[,j])
+    fit_sim[j] <- sum(sq_sim[,j])
   }
+  ## Autocorrelation (Moran's I) for one year:
+  mean_sq <- mean(sq[seq,])
+  for(q in 1:length(seq)){
+    for(j in 1:3){
+      for(r in 1:length(seq)){
+        for(s in 1:3){
+          ## To the nominator in Moran's I formula:
+          nom[q,r,j,s] <- dm[q,r]*
+                          (sq[seq[q],j] - mean_sq)*
+                          (sq[seq[r],s] - mean_sq)
+      }}
+      ## To the denominator in Moran's I formula:
+      denom[q,j] <- (sq[seq[q],j] - mean_sq)^2
+  }}
+  ## Moran's I is calculated:
+  I <- length(seq)*sum(nom[,,,])/(sum(dm[,])*sum(denom[,]))
   
   ## 4. Posterior caclualtions: ------------------------------------------------
 
