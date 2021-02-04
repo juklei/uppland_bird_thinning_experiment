@@ -6,7 +6,7 @@
 ##
 ## Author: Julian Klein
 
-## 1. Clear environment and load libraries -------------------------------------
+## 1. Clear environment, load libraries, and define funcitons ------------------
 
 rm(list = ls())
 
@@ -15,6 +15,11 @@ library(rjags)
 library(runjags)
 library(coda)
 library(reshape2)
+
+## Function to summarise BACI results:
+posterior_summary <- function(x){
+  c(quantile(x, c(0.025, 0.5, 0.975)), "ecdf" = 1-ecdf(x)(0))
+}
 
 ## 2. Load and explore data ----------------------------------------------------
 
@@ -30,9 +35,8 @@ d_nb <- d_nb[!(d_nb$block %in% c("sodersjon", "stocksatra", "kyrkstigen",
                                  "stenby", "soderlejde", "halsingdal", 
                                  "brudgatan") & d_nb$year == 2019), ]
 
-## Also plot 33 &3 6 in 2019, because they were forgotten:
+## Also plot 33 &36 in 2019, because they were forgotten:
 d_nb <- d_nb[!(d_nb$plot %in% c("plot_33", "plot_36") & d_nb$year == 2019), ]
-
 
 ## Reduce to information required for the model:
 d_nb <- d_nb[d_nb$species %in% c("talgoxe", "sv_flug", "blames", "empty"), 
@@ -73,7 +77,7 @@ data <- list(nobs = nrow(d_nb),
 ## 4. Prepare inits and run the model -------------------------------------------
 
 ## Prepare inits (Remember priors must not overlap, 
-## i.e. define non-overlapping init):
+## i.e. define non-overlapping inits):
 i_alpha <- array(c(-5, 0, 5), dim = c((ncol(occ)-1), max(data$year)))
 i_exp_effect <- array(c(-5, 0, 5), 
                       dim = c((ncol(occ)-1), max(data$treat), max(data$exp)))
@@ -87,10 +91,10 @@ model <- "scripts/JAGS/nestbox_JAGS_species.R"
 
 ## Run and burn in:
 jm <- jags.model(model, data, inits, 3, 5000)
-update(jm, 15000)
+update(jm, 45000)
 
 ## Sample from the parameter posteriors:
-cs_1 <- coda.samples(jm, c("alpha", "exp_effect"), 10000, 10)
+cs_1 <- coda.samples(jm, c("alpha", "exp_effect"), 20000, 20)
 
 ## 5. Validate the model and export validation data and figures ----------------
 
@@ -98,8 +102,8 @@ cs_1 <- coda.samples(jm, c("alpha", "exp_effect"), 10000, 10)
 pdf("figures/nestbox_species.pdf"); plot(cs_1); gelman.plot(cs_1); dev.off()
 
 ## Produce validation metrics for posterior predictive checks:
-cs_2 <- jags.samples(jm, c("mean_obs", "mean_sim",
-                           "cv_obs", "cv_sim",
+js_2 <- jags.samples(jm, c("mean_obs", "mean_sim",
+                           "sd_obs", "sd_sim",
                            "fit", "fit_sim",
                            "I"), 10000, 10)
 
@@ -109,18 +113,56 @@ E0 <- round(-1/(nrow(dm)*3 - 1), 4)
 ## Export validations as figure:
 pdf("figures/nestbox_species_ppc&MI.pdf")
 par(mfrow = c(2, 2))
-plot(cs_2$mean_obs, cs_2$mean_sim, xlab = "mean real", ylab = "mean simulated")
+plot(js_2$mean_obs, js_2$mean_sim, xlab = "mean real", ylab = "mean simulated")
 abline(0, 1)
-plot(cs_2$cv_obs, cs_2$cv_sim, xlab = "cv real", ylab = "cv simulated")
+plot(js_2$cv_obs, js_2$cv_sim, xlab = "sd real", ylab = "sd simulated")
 abline(0,1)
-plot(cs_2$fit, cs_2$fit_sim, xlab = "ssq real", ylab = "ssq simulated")
+plot(js_2$fit, js_2$fit_sim, xlab = "ssq real", ylab = "ssq simulated")
 abline(0,1)
-plot(density(cs_2$I), main = paste0("Moran's I, ", y_sel, ", E0 = ", E0))
+plot(density(js_2$I), main = paste0("Moran's I, ", y_sel, ", E0 = ", E0))
 dev.off()
 
 ## 6. Export from posterior for graphing and other results ---------------------
 
-cs_3 <- coda.samples(jm, "p_post", 10000, 10)
-pdf("figures/nestbox_species_post.pdf"); plot(cs_3); dev.off()
+js_3 <- jags.samples(jm, "p_post", 20000, 20)
+p_post <- apply(js_3$p_post, 1:3, c) ## Combine mcmc chains. 
+
+## Calculate BACI indicators: Adjust treatment and reference here !!!!!!!!!!!!!!
+levels(d_nb$treatment)
+eval <- c(1, 2, 4); ref <- 3
+# eval <- c(2, 4); ref <- 1
+## !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+## Calculate the BACI indicators for all species and for all iterations: -------
+BACI_out <- array(NA, dim = c(dim(p_post)[1:2], length(eval), 3))
+for(m in 1:length(eval)){
+  BACI_out[,,m,1] <- (p_post[,,eval[m],2] - p_post[,,eval[m],1]) -
+                     (p_post[,,ref,2] - p_post[,,ref,1])        ## BACI
+  BACI_out[,,m,2] <- abs(p_post[,,eval[m],2] - p_post[,,eval[m],1]) - 
+                     abs(p_post[,,ref,2] - p_post[,,ref,1])     ## CI-ctrl
+  BACI_out[,,m,3] <- abs(p_post[,,eval[m],2] - p_post[,,ref,2]) -     
+                     abs(p_post[,,eval[m],1] - p_post[,,ref,1]) ## CI-div
+}
+
+## Keep track of the names:
+dimnames(BACI_out) <- list(NULL,
+                           colnames(occ),
+                           levels(d_nb$treatment)[eval],
+                           c("BACI", "CI_ctr", "CI_div"))
+
+## Calculate summary statistics:
+BACI_nb <- apply(BACI_out, 2:4, posterior_summary)
+BACI_nb <- dcast(melt(BACI_nb), Var2 + Var3 + Var4 ~ Var1)
+
+## Add naming for figures later on:
+BACI_nb$ref <- paste0("ref_", levels(d_nb$treatment)[ref])
+colnames(BACI_nb)[1:3] <- c("species", "treatment", "indicator")
+
+## Export BACI_nb and adjust name according to the chosen reference:
+write.csv(BACI_nb, 
+          paste0("clean/BACI_nb_ref_", 
+                 ifelse(ref == 3, "NF", "CR"), 
+                 ".csv"),
+          row.names = FALSE)
 
 ## -------------------------------END-------------------------------------------

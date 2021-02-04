@@ -10,14 +10,14 @@
 
 model{
   
-  ## 1. Lijelihood: ------------------------------------------------------------
+  ## 1. Likelihood: ------------------------------------------------------------
   
   for(i in 1:nobs){
     occ[i,] ~ dmulti(p[i,], 1)
     sim[i,1:4] ~ dmulti(p[i,], 1) ## Define number of output categories!
     for(j in 1:3){
       ## Estimate the cummultative probabilities for j=1 to j=J-1:
-      logit(cp[i,j]) <- alpha[j,year[i]] + exp_effect[j,treat[i],exp[i]]
+      logit(cp[i,j]) <- exp_effect[j,treat[i],exp[i]] #+ alpha[j,year[i]]
     }
     ## Define the category-specific probabilities by substraction of 
     ## cummultative probabilities:
@@ -29,11 +29,11 @@ model{
   
   ## 2. Priors: ----------------------------------------------------------------
   
-  for(m in 1:max(year)){
-    alpha[1,m]~ dnorm(0, 0.001)T(, alpha[2,m]) ## Priors must not overlap!
-    alpha[2,m]~ dnorm(0, 0.001)T(, alpha[3,m])
-    alpha[3,m]~ dnorm(0, 0.001)
-  }
+  # for(m in 1:max(year)){
+  #   alpha[1,m] ~ dnorm(0, 0.001)T(, alpha[2,m]) ## Priors must not overlap!
+  #   alpha[2,m] ~ dnorm(0, 0.001)T(, alpha[3,m])
+  #   alpha[3,m] ~ dnorm(0, 0.001)
+  # }
   for(n in 1:max(treat)){
     for(o in 1:max(exp)){
       exp_effect[1,n,o] ~ dnorm(0, 0.001)T(, exp_effect[2,n,o])
@@ -42,22 +42,21 @@ model{
   }}
   
   ## 3. Model validation: ------------------------------------------------------
-  
+
   ## Bayesian p-value:
   mean_obs <- mean(occ[,1:3])
   mean_sim <- mean(sim[,1:3])
   ## Coefficient of variation:
-  cv_obs <- sd(occ[,1:3])/mean_obs
-  cv_sim <- sd(sim[,1:3])/mean_sim
+  sd_obs <- sd(occ[,1:3])
+  sd_sim <- sd(sim[,1:3])
   ## Model fit:
   for(j in 1:3){
     for(i in 1:nobs){
       sq[i,j] <- (occ[i,j] - p[i,j])^2
       sq_sim[i,j] <- (sim[i,j] - p[i,j])^2
-    }
-    fit[j] <- sum(sq[,j])
-    fit_sim[j] <- sum(sq_sim[,j])
-  }
+  }}
+  fit <- sum(sq[,])
+  fit_sim <- sum(sq_sim[,])
   ## Autocorrelation (Moran's I) for one year:
   mean_sq <- mean(sq[seq,])
   for(q in 1:length(seq)){
@@ -74,13 +73,13 @@ model{
   }}
   ## Moran's I is calculated:
   I <- length(seq)*sum(nom[,,,])/(sum(dm[,])*sum(denom[,]))
-  
+
   ## 4. Posterior caclualtions: ------------------------------------------------
 
   for(n in 1:max(treat)){
     for(o in 1:max(exp)){
       for(j in 1:3){
-        logit(cp_post[j,n,o]) <- mean(alpha[j,]) + exp_effect[j,n,o]
+        logit(cp_post[j,n,o]) <- exp_effect[j,n,o] #+ mean(alpha[j,])
       }
       p_post[1,n,o] <- cp_post[1,n,o]
       p_post[2,n,o] <- cp_post[2,n,o] - cp_post[1,n,o]
