@@ -17,7 +17,9 @@ model{
     sim[i,1:4] ~ dmulti(p[i,], 1) ## Define number of output categories!
     for(j in 1:3){
       ## Estimate the cummultative probabilities for j=1 to j=J-1:
-      logit(cp[i,j]) <- exp_effect[j,treat[i],exp[i]] #+ alpha[j,year[i]]
+      logit(cp[i,j]) <- exp_effect[j,treat[i],exp[i]] + 
+                        y_effect[j,1]*ifelse(year[i] == 2018, 1, 0) + 
+                        y_effect[j,2]*ifelse(year[i] == 2019, 1, 0)
     }
     ## Define the category-specific probabilities by substraction of 
     ## cummultative probabilities:
@@ -29,17 +31,17 @@ model{
   
   ## 2. Priors: ----------------------------------------------------------------
   
-  # for(m in 1:max(year)){
-  #   alpha[1,m] ~ dnorm(0, 0.001)T(, alpha[2,m]) ## Priors must not overlap!
-  #   alpha[2,m] ~ dnorm(0, 0.001)T(, alpha[3,m])
-  #   alpha[3,m] ~ dnorm(0, 0.001)
-  # }
   for(n in 1:max(treat)){
     for(o in 1:max(exp)){
       exp_effect[1,n,o] ~ dnorm(0, 0.001)T(, exp_effect[2,n,o])
       exp_effect[2,n,o] ~ dnorm(0, 0.001)T(, exp_effect[3,n,o])
       exp_effect[3,n,o] ~ dnorm(0, 0.001)
-  }}
+    }}
+  for(y in 1:2){
+    y_effect[1,y] ~ dnorm(0, 0.001)T(, y_effect[2,y])
+    y_effect[2,y] ~ dnorm(0, 0.001)T(, y_effect[3,y])
+    y_effect[3,y] ~ dnorm(0, 0.001)
+  }
   
   ## 3. Model validation: ------------------------------------------------------
 
@@ -79,7 +81,7 @@ model{
   for(n in 1:max(treat)){
     for(o in 1:max(exp)){
       for(j in 1:3){
-        logit(cp_post[j,n,o]) <- exp_effect[j,n,o] #+ mean(alpha[j,])
+        logit(cp_post[j,n,o]) <- exp_effect[j,n,o] ## Prediction as if 2017 
       }
       p_post[1,n,o] <- cp_post[1,n,o]
       p_post[2,n,o] <- cp_post[2,n,o] - cp_post[1,n,o]

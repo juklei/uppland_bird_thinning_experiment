@@ -47,6 +47,9 @@ d_nb <- droplevels(d_nb)
 d_pos <- na.omit(d_pos[, c("plot", "box", "north", "east")])
 d_nb <- merge(d_nb, d_pos, by = c("plot", "box"), all.x = TRUE)
 
+# ## Randomly remove before/after duplicates:
+# table(d_nb[, c("plot", "box", "experiment")])
+
 ## 3. Prepare data for the JAGS module -----------------------------------------
 
 ## Create a inverse distance matrix for calculating Moran's I for every year:
@@ -68,7 +71,7 @@ occ <- occ[, c(1, 3, 4, 2)] ## "empty" as last category
 ## Compile data for JAGS:
 data <- list(nobs = nrow(d_nb),
              occ = occ,
-             year = d_nb$year - 2016,
+             year = d_nb$year,
              treat = as.numeric(d_nb$treatment),
              exp = ifelse(d_nb$experiment == "before", 1, 2),
              dm = dm,
@@ -78,23 +81,23 @@ data <- list(nobs = nrow(d_nb),
 
 ## Prepare inits (Remember priors must not overlap, 
 ## i.e. define non-overlapping inits):
-i_alpha <- array(c(-5, 0, 5), dim = c((ncol(occ)-1), max(data$year)))
+i_y_effect <- array(c(-5, 0, 5), dim = c((ncol(occ)-1), 2))
 i_exp_effect <- array(c(-5, 0, 5), 
                       dim = c((ncol(occ)-1), max(data$treat), max(data$exp)))
 
-inits <- list(list(alpha = i_alpha, exp_effect = i_exp_effect),
-              list(alpha = i_alpha/5, exp_effect = i_exp_effect/5),
-              list(alpha = i_alpha*2, exp_effect = i_exp_effect*2))
+inits <- list(list(y_effect = i_y_effect, exp_effect = i_exp_effect),
+              list(y_effect = i_y_effect/5, exp_effect = i_exp_effect/5),
+              list(y_effect = i_y_effect*2, exp_effect = i_exp_effect*2))
 
 ## Load the model:
 model <- "scripts/JAGS/nestbox_JAGS_species.R"
 
 ## Run and burn in:
 jm <- jags.model(model, data, inits, 3, 5000)
-update(jm, 45000)
+update(jm, 5000)
 
 ## Sample from the parameter posteriors:
-cs_1 <- coda.samples(jm, c("alpha", "exp_effect"), 20000, 20)
+cs_1 <- coda.samples(jm, c("y_effect", "exp_effect"), 50000, 50)
 
 ## 5. Validate the model and export validation data and figures ----------------
 
@@ -105,7 +108,7 @@ pdf("figures/nestbox_species.pdf"); plot(cs_1); gelman.plot(cs_1); dev.off()
 js_2 <- jags.samples(jm, c("mean_obs", "mean_sim",
                            "sd_obs", "sd_sim",
                            "fit", "fit_sim",
-                           "I"), 10000, 10)
+                           "I"), 5000, 5)
 
 ## Calculate Moran's I if random spatial distribution of residuals: 
 E0 <- round(-1/(nrow(dm)*3 - 1), 4)
@@ -115,7 +118,7 @@ pdf("figures/nestbox_species_ppc&MI.pdf")
 par(mfrow = c(2, 2))
 plot(js_2$mean_obs, js_2$mean_sim, xlab = "mean real", ylab = "mean simulated")
 abline(0, 1)
-plot(js_2$cv_obs, js_2$cv_sim, xlab = "sd real", ylab = "sd simulated")
+plot(js_2$sd_obs, js_2$sd_sim, xlab = "sd real", ylab = "sd simulated")
 abline(0,1)
 plot(js_2$fit, js_2$fit_sim, xlab = "ssq real", ylab = "ssq simulated")
 abline(0,1)
@@ -124,7 +127,7 @@ dev.off()
 
 ## 6. Export from posterior for graphing and other results ---------------------
 
-js_3 <- jags.samples(jm, "p_post", 20000, 20)
+js_3 <- jags.samples(jm, "p_post", 50000, 50)
 p_post <- apply(js_3$p_post, 1:3, c) ## Combine mcmc chains. 
 
 ## Calculate BACI indicators: Adjust treatment and reference here !!!!!!!!!!!!!!
