@@ -128,45 +128,46 @@ dev.off()
 ## 6. Export from posterior for graphing and other results ---------------------
 
 js_3 <- jags.samples(jm, c("lambda_post", "p_post"), 50000, 50)
-p_post <- apply(js_3$p_post, 1:3, c) ## Combine mcmc chains. 
 
-### cont.........
-
+## Combine mcmc chains. 
+post <- abind::abind(apply(js_3$lambda_post, 1:2, c), 
+                     apply(js_3$p_post, 1:2, c),
+                     along = 4) 
 
 ## Calculate BACI indicators: Adjust treatment and reference here !!!!!!!!!!!!!!
 levels(d_rs$treatment)
-# eval <- c(1, 2, 4); ref <- 3
-eval <- c(2, 4); ref <- 1
+eval <- c(1, 2, 4); ref <- 3
+# eval <- c(2, 4); ref <- 1
 ## !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-## Calculate the BACI indicators for all species and for all iterations: -------
-BACI_out <- array(NA, dim = c(dim(p_post)[1:2], length(eval), 3))
+## Calculate the BACI indicators for both responses and for all iterations:
+BACI_out <- array(NA, dim = c(dim(post)[1], length(js_3), length(eval), 3))
 for(m in 1:length(eval)){
-  BACI_out[,,m,1] <- (p_post[,,eval[m],2] - p_post[,,eval[m],1]) -
-                     (p_post[,,ref,2] - p_post[,,ref,1])        ## BACI
-  BACI_out[,,m,2] <- abs(p_post[,,eval[m],2] - p_post[,,eval[m],1]) - 
-                     abs(p_post[,,ref,2] - p_post[,,ref,1])     ## CI-ctrl
-  BACI_out[,,m,3] <- abs(p_post[,,eval[m],2] - p_post[,,ref,2]) -     
-                     abs(p_post[,,eval[m],1] - p_post[,,ref,1]) ## CI-div
+  BACI_out[,,m,1] <- (post[,eval[m],,2] - post[,eval[m],,1]) -
+                     (post[,ref,,2] - post[,ref,,1])        ## BACI
+  BACI_out[,,m,2] <- abs(post[,eval[m],,2] - post[,eval[m],,1]) - 
+                     abs(post[,ref,,2] - post[,ref,,1])     ## CI-ctrl
+  BACI_out[,,m,3] <- abs(post[,eval[m],,2] - post[,ref,,2]) -     
+                     abs(post[,eval[m],,1] - post[,ref,,1]) ## CI-div
 }
 
 ## Keep track of the names:
 dimnames(BACI_out) <- list(NULL,
-                           colnames(occ),
+                           names(js_3),
                            levels(d_rs$treatment)[eval],
                            c("BACI", "CI_ctr", "CI_div"))
 
 ## Calculate summary statistics:
-BACI_nb <- apply(BACI_out, 2:4, posterior_summary)
-BACI_nb <- dcast(melt(BACI_nb), Var2 + Var3 + Var4 ~ Var1)
+BACI_rs <- apply(BACI_out, 2:4, posterior_summary)
+BACI_rs <- dcast(melt(BACI_rs), Var2 + Var3 + Var4 ~ Var1)
 
 ## Add naming for figures later on:
-BACI_nb$ref <- paste0("ref_", levels(d_rs$treatment)[ref])
-colnames(BACI_nb)[1:3] <- c("species", "treatment", "indicator")
+BACI_rs$ref <- paste0("ref_", levels(d_rs$treatment)[ref])
+colnames(BACI_rs)[1:3] <- c("response", "treatment", "indicator")
 
-## Export BACI_nb and adjust name according to the chosen reference:
-write.csv(BACI_nb, 
-          paste0("clean/BACI_nb_repsuc_ref_", 
+## Export BACI_rs and adjust name according to the chosen reference:
+write.csv(BACI_rs, 
+          paste0("clean/BACI_rs_ref_", 
                  ifelse(ref == 3, "NF", "CR"), 
                  ".csv"),
           row.names = FALSE)

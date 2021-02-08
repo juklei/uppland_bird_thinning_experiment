@@ -1,5 +1,4 @@
-## Make figures for the experimental data and the bpo model responses
-##
+## Make figures for the experimental data and the bpo and nestbox model
 
 # To do: Add number of pbservations per species to the species figure. 
 # State why the numbers: Caution with interpreting effects.
@@ -24,17 +23,25 @@ require("ggh4x")
 
 bird_data <- read.csv("data/bird_data.csv")
 BACI_sl_NF <- read.csv("clean/BACI_sl_red_ref_NF.csv")
-BACI_gl_NF <- read.csv("clean/BACI_gl_red_ref_NF.csv")
 BACI_sl_CR <- read.csv("clean/BACI_sl_red_ref_CR.csv")
+BACI_gl_NF <- read.csv("clean/BACI_gl_red_ref_NF.csv")
 BACI_gl_CR <- read.csv("clean/BACI_gl_red_ref_CR.csv")
+BACI_nb_NF <- read.csv("clean/BACI_nb_ref_NF.csv")
+BACI_nb_CR <- read.csv("clean/BACI_nb_ref_CR.csv")
+BACI_rs_NF <- read.csv("clean/BACI_rs_ref_NF.csv")
+BACI_rs_CR <- read.csv("clean/BACI_rs_ref_CR.csv")
 
 ## Exclude URT from NF controls:
 BACI_sl_NF <- droplevels(BACI_sl_NF[BACI_sl_NF$treatment != "URT", ])
 BACI_gl_NF <- droplevels(BACI_gl_NF[BACI_gl_NF$treatment != "URT", ])
+BACI_nb_NF <- droplevels(BACI_nb_NF[BACI_nb_NF$treatment != "URT", ])
+BACI_rs_NF <- droplevels(BACI_rs_NF[BACI_rs_NF$treatment != "URT", ])
 
 ## Combine all data:
 BACI_sl <- rbind(BACI_sl_NF, BACI_sl_CR)
 BACI_gl <- rbind(BACI_gl_NF, BACI_gl_CR)
+BACI_nb <- rbind(BACI_nb_NF, BACI_nb_CR)
+BACI_rs <- rbind(BACI_rs_NF, BACI_rs_CR)
 
 ## Change level names:
 l1 <- c("Complete retention", 
@@ -42,12 +49,18 @@ l1 <- c("Complete retention",
         "Understory retention thinning")
 levels(BACI_sl$treatment) <-  l1
 levels(BACI_gl$treatment) <-  l1
+levels(BACI_nb$treatment) <-  l1
+levels(BACI_rs$treatment) <-  l1
 l2 <- c("BACI-contrast", "CI-contribution", "CI-divergence")
 levels(BACI_sl$indicator) <- l2
 levels(BACI_gl$indicator) <- l2
+levels(BACI_nb$indicator) <- l2
+levels(BACI_rs$indicator) <- l2
 l3 <- c("Control = No forestry", "Control = Complete retention")
 levels(BACI_sl$ref) <- l3
 levels(BACI_gl$ref) <- l3
+levels(BACI_nb$ref) <- l3
+levels(BACI_rs$ref) <- l3
 
 ## 3. Make combined figure for BACI_sl -----------------------------------------
 
@@ -191,6 +204,56 @@ Q <- q1 +
 
 png("figures/BACI_gl_red_probs_new.png", 30000/8, 20000/8, "px", res = 600/8)
 Q
+dev.off()
+
+## 5. Make graph for nestbox data ----------------------------------------------
+
+## Combine nb & rs:
+levels(BACI_nb$species)[c(1,3,4)] <- c("Cyanistes careuleus", 
+                                       "Ficedula hypeleuca", 
+                                       "Parus major")
+BACI_nb$response <- "occupancy"
+BACI_rs$species[BACI_rs$response == "lambda_post"] <- "Parus major (fledged)"
+BACI_rs$species[BACI_rs$response == "p_post"] <- "Parus major (success)"
+BACI_rs$response <- "reproduction"
+BACI_nestbox <- rbind(BACI_nb, BACI_rs[, c(ncol(BACI_rs), 2:ncol(BACI_rs)-1)])
+
+## Graph for probabilies:
+
+## Don't display empty nests:
+BACI_nestbox <- droplevels(BACI_nestbox[BACI_nestbox$species != "empty", ])
+
+s1 <- ggplot(BACI_nestbox, aes(x = species, y = 0, colour = treatment))
+s2a <- geom_errorbar(aes(ymin = 0, ymax = ecdf), 
+                     position = position_dodge(0.5),
+                     size = 8, 
+                     width = 0)
+s2b <- geom_errorbar(aes(ymin = ecdf - 1, ymax = 0), 
+                     position = position_dodge(0.5),
+                     size = 8,                  
+                     width = 0)
+s3 <- facet_nested(vars(response), vars(ref, indicator), "free", scales = "free")
+S <- s1 +
+  geom_hline(yintercept = 0, size = 2, color = "darkgrey") +
+  scale_y_continuous(breaks = c(-1, -0.5, 0, 0.5, 1),
+                     labels = c("1", ".5", "0", "", ""),
+                     sec.axis = dup_axis(
+                       name = "Probability that the indicator is positive",
+                       labels = c("", "", "0", ".5", "1"))) +
+  s2a + s2b + s3 +
+  xlab("") + ylab("Probability that the indicator is negative") + 
+  coord_flip() +
+  scale_colour_manual(values = c("#00AFBB", "#FC4E07", "#E7B800")) +
+  theme_light(70) +
+  theme(legend.position = "top", 
+        legend.title = element_blank(),
+        legend.key.size = unit(5, 'lines'),
+        legend.box = "vertical",
+        legend.spacing.y = unit(0, "lines"),
+        strip.background = element_rect(colour = "white", size = 0.8))
+
+png("figures/BACI_nestbox_probs.png", 30000/8, 14000/8, "px", res = 600/8)
+S
 dev.off()
 
 ## -------------------------------END-------------------------------------------
