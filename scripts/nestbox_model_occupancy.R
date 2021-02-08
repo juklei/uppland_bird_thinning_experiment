@@ -47,9 +47,6 @@ d_nb <- droplevels(d_nb)
 d_pos <- na.omit(d_pos[, c("plot", "box", "north", "east")])
 d_nb <- merge(d_nb, d_pos, by = c("plot", "box"), all.x = TRUE)
 
-# ## Randomly remove before/after duplicates:
-# table(d_nb[, c("plot", "box", "experiment")])
-
 ## 3. Prepare data for the JAGS module -----------------------------------------
 
 ## Create a inverse distance matrix for calculating Moran's I for every year:
@@ -132,8 +129,8 @@ p_post <- apply(js_3$p_post, 1:3, c) ## Combine mcmc chains.
 
 ## Calculate BACI indicators: Adjust treatment and reference here !!!!!!!!!!!!!!
 levels(d_nb$treatment)
-eval <- c(1, 2, 4); ref <- 3
-# eval <- c(2, 4); ref <- 1
+# eval <- c(1, 2, 4); ref <- 3
+eval <- c(2, 4); ref <- 1
 ## !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 ## Calculate the BACI indicators for all species and for all iterations: -------
@@ -163,7 +160,7 @@ colnames(BACI_nb)[1:3] <- c("species", "treatment", "indicator")
 
 ## Export BACI_nb and adjust name according to the chosen reference:
 write.csv(BACI_nb, 
-          paste0("clean/BACI_nb_ref_", 
+          paste0("clean/BACI_nb_occ_ref_", 
                  ifelse(ref == 3, "NF", "CR"), 
                  ".csv"),
           row.names = FALSE)

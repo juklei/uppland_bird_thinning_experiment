@@ -1,5 +1,11 @@
 ## Make figures for the experimental data and the bpo model responses
 ##
+
+# To do: Add number of pbservations per species to the species figure. 
+# State why the numbers: Caution with interpreting effects.
+# Make a figure like the guilds figure with the nestboxes with response variable
+# instead of guilds.
+
 ## First edit: 20191028
 ## Last edit:  20200515
 ##
