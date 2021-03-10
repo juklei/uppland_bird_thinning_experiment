@@ -210,11 +210,11 @@ dev.off()
 
 ## Combine nb & rs:
 levels(BACI_nb$species)[c(1,3,4)] <- c("Cyanistes careuleus", 
-                                       "Ficedula hypeleuca", 
+                                       "Ficedula hypoleuca", 
                                        "Parus major")
-BACI_nb$response <- "occupancy"
-BACI_rs$species[BACI_rs$response == "lambda_post"] <- "Parus major (fledged)"
-BACI_rs$species[BACI_rs$response == "p_post"] <- "Parus major (success)"
+BACI_nb$response <- "box occupancy"
+BACI_rs$species[BACI_rs$response == "lambda_post"] <- "Parus major (fledglings)"
+BACI_rs$species[BACI_rs$response == "p_post"] <- "Parus major (failure)"
 BACI_rs$response <- "reproduction"
 BACI_nestbox <- rbind(BACI_nb, BACI_rs[, c(ncol(BACI_rs), 2:ncol(BACI_rs)-1)])
 
@@ -252,7 +252,7 @@ S <- s1 +
         legend.spacing.y = unit(0, "lines"),
         strip.background = element_rect(colour = "white", size = 0.8))
 
-png("figures/BACI_nestbox_probs.png", 30000/8, 14000/8, "px", res = 600/8)
+png("figures/BACI_nb_probs.png", 30000/8, 14000/8, "px", res = 600/8)
 S
 dev.off()
 

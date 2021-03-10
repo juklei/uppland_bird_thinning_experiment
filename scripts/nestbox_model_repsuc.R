@@ -71,17 +71,17 @@ data <- list(nobs = nrow(d_rs),
 ## Prepare inits:
 i_exp_effect <- matrix(1, max(data$treat), max(data$exp))
 
-inits <- list(list(z = rep(1, data$nobs),
+inits <- list(list(z = rep(0, data$nobs),
                    exp_effect_l = i_exp_effect,
                    exp_effect_p = i_exp_effect,
                    y_effect_l = c(1, 1),
                    y_effect_p = c(1, 1)),
-              list(z = rep(1, data$nobs),
+              list(z = rep(0, data$nobs),
                    exp_effect_l = -i_exp_effect,
                    exp_effect_p = -i_exp_effect,
                    y_effect_l = c(-1, -1),
                    y_effect_p = c(-1, -1)),
-              list(z = rep(1, data$nobs),
+              list(z = rep(0, data$nobs),
                    exp_effect_l = i_exp_effect*5,
                    exp_effect_p = i_exp_effect*5,
                    y_effect_l = c(5, 5),
@@ -108,7 +108,8 @@ pdf("figures/nestbox_repsuc.pdf"); plot(cs_1); gelman.plot(cs_1); dev.off()
 js_2 <- jags.samples(jm, c("mean_obs", "mean_sim",
                            "sd_obs", "sd_sim",
                            "fit", "fit_sim",
-                           "I"), 5000, 5)
+                           "I"), 
+                     5000, 5)
 
 ## Calculate Moran's I if random spatial distribution of residuals: 
 E0 <- round(-1/(nrow(dm)*3 - 1), 4)
@@ -136,8 +137,8 @@ post <- abind::abind(apply(js_3$lambda_post, 1:2, c),
 
 ## Calculate BACI indicators: Adjust treatment and reference here !!!!!!!!!!!!!!
 levels(d_rs$treatment)
-eval <- c(1, 2, 4); ref <- 3
-# eval <- c(2, 4); ref <- 1
+# eval <- c(1, 2, 4); ref <- 3
+eval <- c(2, 4); ref <- 1
 ## !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 ## Calculate the BACI indicators for both responses and for all iterations:

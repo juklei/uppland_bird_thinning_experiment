@@ -1,4 +1,4 @@
-## Nestbox model for reproductive success in the great tit
+## Zero-Inflated Nestbox model for reproductive success in the great tit
 ##
 ## First edit: 20210208
 ## Last edit: 20210208
@@ -10,8 +10,8 @@ model{
   ## 1. Likelihood: ------------------------------------------------------------
   
   for(i in 1:nobs){
-    repsuc[i] ~ dpois(z[i]*lambda[i])
-    sim[i] ~ dpois(z[i]*lambda[i])
+    repsuc[i] ~ dpois((1 - z[i])*lambda[i])
+    sim[i] ~ dpois((1 - z[i])*lambda[i])
     log(lambda[i]) <- exp_effect_l[treat[i],exp[i]] + 
                       y_effect_l[1]*ifelse(year[i] == 2018, 1, 0) +
                       y_effect_l[2]*ifelse(year[i] == 2019, 1, 0)
@@ -43,8 +43,8 @@ model{
   sd_sim <- sd(sim[])
   ## Model fit:
   for(i in 1:nobs){
-    sq[i] <- (repsuc[i] - z[i]*lambda[i])^2
-    sq_sim[i] <- (sim[i] - z[i]*lambda[i])^2
+    sq[i] <- (repsuc[i] - (1 - z[i])*lambda[i])^2
+    sq_sim[i] <- (sim[i] - (1 - z[i])*lambda[i])^2
   }
   fit <- sum(sq[])
   fit_sim <- sum(sq_sim[])
