@@ -22,6 +22,7 @@ require("ggh4x")
 ## 2. Load and prepare data ----------------------------------------------------
 
 bird_data <- read.csv("data/bird_data.csv")
+bpo <- read.csv("clean/bpo_double.csv")
 BACI_sl_NF <- read.csv("clean/BACI_sl_red_ref_NF.csv")
 BACI_sl_CR <- read.csv("clean/BACI_sl_red_ref_CR.csv")
 BACI_gl_NF <- read.csv("clean/BACI_gl_red_ref_NF.csv")
@@ -62,6 +63,22 @@ levels(BACI_gl$ref) <- l3
 levels(BACI_nb$ref) <- l3
 levels(BACI_rs$ref) <- l3
 
+## Conventional should have same colour in both panels:
+l4 <- c("Understory retention thinning",
+        "Complete retention", 
+        "Conventional thinning")
+BACI_sl$treatment <- factor(BACI_sl$treatment, l4) 
+BACI_gl$treatment <- factor(BACI_gl$treatment, l4) 
+BACI_nb$treatment <- factor(BACI_nb$treatment, l4) 
+BACI_rs$treatment <- factor(BACI_rs$treatment, l4) 
+
+## Add raw observation numbers to name:
+bpo <- as.data.table(bpo)
+nobs <- bpo[, list(sum_nobs = sum(n_obs)), by = "species"]
+nobs <- merge(nobs, bird_data, by.x = "species", by.y = "short")
+BACI_sl <- merge(BACI_sl, nobs[, c("long", "sum_nobs")], by.x = "species", by.y = "long")
+BACI_sl$species_nobs <- as.factor(paste0(BACI_sl$species, " (", BACI_sl$sum_nobs, ")"))
+
 ## 3. Make combined figure for BACI_sl -----------------------------------------
 
 ## Graph with slopes:
@@ -80,13 +97,13 @@ g2 <- geom_errorbar(aes(ymin = X2.5., ymax = X97.5.),
                     # alpha = 0.8,
                     position = position_dodge(0.6))
 g3 <- geom_point(position = position_dodge(0.6), size = 7, colour = "black")
-g4 <- facet_nested(vars(cat), vars(ref, indicator), "free", scales = "free")
+g4 <- facet_nested(vars(cat), vars(ref, indicator), "free")
 G <- g1 +
   geom_hline(yintercept = 0, size = 2, color = "darkgrey") + 
   g2 + g4 + g3 +
   xlab("") + ylab("Indicator value for probability of occurrence") + 
   coord_flip() +
-  scale_colour_manual(values = c("#00AFBB", "#FC4E07", "#E7B800")) +
+  scale_colour_manual(values = c("#E7B800", "#00AFBB", "#FC4E07")) +
   scale_y_continuous(breaks = c(-1, -0.5, 0, 0.5, 1),
                      labels = c("-1", "-.5", "0", ".5", "1")) +
   theme_light(85) +
@@ -104,41 +121,41 @@ png("figures/BACI_sl_red_slopes_new.png", 40000/8, 30000/8, "px", res = 600/8)
 G
 dev.off()
 
-# ## Graph for probabilies:
-# 
-# ## Make graph:
-# p1 <- ggplot(BACI_sl, aes(species, 0, colour = treatment))
-# p2a <- geom_errorbar(aes(ymin = 0, ymax = BACI_sl$ecdf),
-#                      position = position_dodge(0.6),
-#                      size = 4,
-#                      width = 0)
-# p2b <- geom_errorbar(aes(ymin = BACI_sl$ecdf - 1, ymax = 0),
-#                      position = position_dodge(0.6),
-#                      size = 4,
-#                      width = 0)
-# P <- p1 +
-#   geom_hline(yintercept = 0, size = 2, color = "darkgrey") +
-#   scale_y_continuous(breaks = c(-1, -0.5, 0, 0.5, 1),
-#                      labels = c("1", ".5", "0", "", ""),
-#                      sec.axis = dup_axis(
-#                        name = "Probability that the indicator is positive",
-#                        labels = c("", "", "0", ".5", "1"))) +
-#   p2a + p2b + g4 +
-#   xlab("") + ylab("Probability that the indicator is negative") +
-#   coord_flip() +
-#   scale_colour_manual(values = c("#00AFBB", "#FC4E07", "#E7B800")) +
-#   theme_light(70) +
-#   theme(legend.position = "top",
-#         legend.title = element_blank(),
-#         legend.key.size = unit(5, 'lines'),
-#         legend.box = "vertical",
-#         legend.spacing.y = unit(0, "lines"),
-#         strip.text.y = element_blank(),
-#         strip.background = element_rect(colour="white", size = 0.8))
-# 
-# png("figures/BACI_sl_probs.png", 30000/8, 27500/8, "px", res = 600/8)
-# P
-# dev.off()
+## Graph for probabilies:
+
+## Start species names with "A" on top:
+BACI_sl$species_nobs <- factor(BACI_sl$species_nobs, rev(levels(BACI_sl$species_nobs)))
+
+## Make graph:
+p1 <- ggplot(BACI_sl, aes(species_nobs, 0, colour = treatment))
+p2 <- geom_errorbar(aes(ymin = ifelse(ecdf < 0.5, ecdf - 1, 0), 
+                         ymax = ifelse(ecdf < 0.5, 0, ecdf)),
+                     position = position_dodge(0.6),
+                     size = 5,
+                     width = 0)
+P <- p1 +
+  geom_hline(yintercept = 0, size = 2, color = "darkgrey") +
+  scale_y_continuous(breaks = c(-1, -0.5, 0, 0.5, 1),
+                     labels = c("1", ".5", "0", "", ""),
+                     sec.axis = dup_axis(
+                       name = "Probability that the indicator is positive",
+                       labels = c("", "", "0", ".5", "1"))) +
+  p2 + g4 +
+  xlab("") + ylab("Probability that the indicator is negative") +
+  coord_flip() +
+  scale_colour_manual(values = c("#E7B800", "#00AFBB", "#FC4E07")) +
+  theme_light(70) +
+  theme(legend.position = "top",
+        legend.title = element_blank(),
+        legend.key.size = unit(5, 'lines'),
+        legend.box = "vertical",
+        legend.spacing.y = unit(0, "lines"),
+        strip.text.y = element_blank(),
+        strip.background = element_rect(colour="white", size = 0.8))
+
+png("figures/BACI_sl_probs2.png", 30000/8, 27500/8, "px", res = 600/8)
+P
+dev.off()
 
 ## 4. Make graphs for guilds & trends ------------------------------------------
 
@@ -150,13 +167,13 @@ h2 <- geom_errorbar(aes(ymin = X2.5., ymax = X97.5.),
                     width = 0, 
                     position = position_dodge(0.6))
 h3 <- geom_point(position = position_dodge(0.6), size = 7, colour = "black")
-h4 <- facet_nested(vars(group), vars(ref, indicator), "free", scales = "free")
+h4 <- facet_nested(vars(group), vars(ref, indicator), "free", scales = "free_y")
 H <- h1 +
   geom_hline(yintercept = 0, size = 2, color = "darkgrey") +
   h2 + h3 + h4 +
   xlab("") + ylab("Indicator value for probability of occurrence") + 
   coord_flip() +
-  scale_colour_manual(values = c("#00AFBB", "#FC4E07", "#E7B800")) +
+  scale_colour_manual(values = c("#E7B800", "#00AFBB", "#FC4E07")) +
   scale_y_continuous(breaks = c(-1, -0.5, 0, 0.5, 1),
                      labels = c("-1", "-.5", "0", ".5", "1")) +
   theme_light(70) +
@@ -174,15 +191,16 @@ dev.off()
 ## Graph for probabilies:
 
 q1 <- ggplot(data = BACI_gl, aes(x = guild, y = 0, colour = treatment))
-q2a <- geom_errorbar(aes(ymin = 0, ymax = BACI_gl$ecdf), 
+q2a <- geom_errorbar(aes(ymin = ifelse(ecdf < 0.5, ecdf - 1, 0), 
+                         ymax = ifelse(ecdf < 0.5, 0, ecdf)),
                      position = position_dodge(0.5),
-                     size = 5, 
+                     size = 5,
                      width = 0)
-q2b <- geom_errorbar(aes(ymin = BACI_gl$ecdf - 1, ymax = 0), 
-                     position = position_dodge(0.5),
-                     size = 5,                  
-                     width = 0)
-q3 <- facet_nested(vars(group), vars(ref, indicator), "free", scales = "free")
+# q2b <- geom_errorbar(aes(ymin = BACI_gl$ecdf - 1, ymax = 0), 
+#                      position = position_dodge(0.5),
+#                      size = 5,                  
+#                      width = 0)
+q3 <- facet_nested(vars(group), vars(ref, indicator), "free", scales = "free_y")
 Q <- q1 +
   geom_hline(yintercept = 0, size = 2, color = "darkgrey") +
   scale_y_continuous(breaks = c(-1, -0.5, 0, 0.5, 1),
@@ -190,10 +208,10 @@ Q <- q1 +
                      sec.axis = dup_axis(
                        name = "Probability that the indicator is positive",
                        labels = c("", "", "0", ".5", "1"))) +
-  q2a + q2b + q3 +
+  q2a + q3 +
   xlab("") + ylab("Probability that the indicator is negative") + 
   coord_flip() +
-  scale_colour_manual(values = c("#00AFBB", "#FC4E07", "#E7B800")) +
+  scale_colour_manual(values = c("#E7B800", "#00AFBB", "#FC4E07")) +
   theme_light(70) +
   theme(legend.position = "top", 
         legend.title = element_blank(),
@@ -202,7 +220,7 @@ Q <- q1 +
         legend.spacing.y = unit(0, "lines"),
         strip.background = element_rect(colour = "white", size = 0.8))
 
-png("figures/BACI_gl_red_probs_new.png", 30000/8, 20000/8, "px", res = 600/8)
+png("figures/BACI_gl_red_probs_2.png", 30000/8, 20000/8, "px", res = 600/8)
 Q
 dev.off()
 
@@ -213,8 +231,8 @@ levels(BACI_nb$species)[c(1,3,4)] <- c("Cyanistes careuleus",
                                        "Ficedula hypoleuca", 
                                        "Parus major")
 BACI_nb$response <- "box occupancy"
-BACI_rs$species[BACI_rs$response == "lambda_post"] <- "Parus major (fledglings)"
-BACI_rs$species[BACI_rs$response == "p_post"] <- "Parus major (failure)"
+BACI_rs$species[BACI_rs$response == "lambda_post"] <- "Parus major (no. fledglings)"
+BACI_rs$species[BACI_rs$response == "p_post"] <- "Parus major (nestfailure)"
 BACI_rs$response <- "reproduction"
 BACI_nestbox <- rbind(BACI_nb, BACI_rs[, c(ncol(BACI_rs), 2:ncol(BACI_rs)-1)])
 
@@ -224,15 +242,16 @@ BACI_nestbox <- rbind(BACI_nb, BACI_rs[, c(ncol(BACI_rs), 2:ncol(BACI_rs)-1)])
 BACI_nestbox <- droplevels(BACI_nestbox[BACI_nestbox$species != "empty", ])
 
 s1 <- ggplot(BACI_nestbox, aes(x = species, y = 0, colour = treatment))
-s2a <- geom_errorbar(aes(ymin = 0, ymax = ecdf), 
+s2a <- geom_errorbar(aes(ymin = ifelse(ecdf < 0.5, ecdf - 1, 0), 
+                         ymax = ifelse(ecdf < 0.5, 0, ecdf)),
                      position = position_dodge(0.5),
-                     size = 8, 
+                     size = 8,
                      width = 0)
-s2b <- geom_errorbar(aes(ymin = ecdf - 1, ymax = 0), 
-                     position = position_dodge(0.5),
-                     size = 8,                  
-                     width = 0)
-s3 <- facet_nested(vars(response), vars(ref, indicator), "free", scales = "free")
+# s2b <- geom_errorbar(aes(ymin = ecdf - 1, ymax = 0), 
+#                      position = position_dodge(0.5),
+#                      size = 8,                  
+#                      width = 0)
+s3 <- facet_nested(vars(response), vars(ref, indicator), "free", scales = "free_y")
 S <- s1 +
   geom_hline(yintercept = 0, size = 2, color = "darkgrey") +
   scale_y_continuous(breaks = c(-1, -0.5, 0, 0.5, 1),
@@ -240,10 +259,10 @@ S <- s1 +
                      sec.axis = dup_axis(
                        name = "Probability that the indicator is positive",
                        labels = c("", "", "0", ".5", "1"))) +
-  s2a + s2b + s3 +
+  s2a + s3 +
   xlab("") + ylab("Probability that the indicator is negative") + 
   coord_flip() +
-  scale_colour_manual(values = c("#00AFBB", "#FC4E07", "#E7B800")) +
+  scale_colour_manual(values = c("#E7B800", "#00AFBB", "#FC4E07")) +
   theme_light(70) +
   theme(legend.position = "top", 
         legend.title = element_blank(),
@@ -252,7 +271,7 @@ S <- s1 +
         legend.spacing.y = unit(0, "lines"),
         strip.background = element_rect(colour = "white", size = 0.8))
 
-png("figures/BACI_nb_probs.png", 30000/8, 14000/8, "px", res = 600/8)
+png("figures/BACI_nb_probs2.png", 30000/8, 14000/8, "px", res = 600/8)
 S
 dev.off()
 
