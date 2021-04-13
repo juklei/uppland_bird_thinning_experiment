@@ -115,7 +115,7 @@ G <- g1 +
         legend.text = element_text(size = 95),
         axis.title.x = element_text(size = 100),
         strip.text.y = element_blank(),
-        strip.background = element_rect(colour = "white", size = 0.8))
+        strip.background = element_rect(colour = "white", size = 1.5))
 
 png("figures/BACI_sl_red_slopes_new.png", 40000/8, 30000/8, "px", res = 600/8)
 G
@@ -147,13 +147,13 @@ P <- p1 +
   theme_light(70) +
   theme(legend.position = "top",
         legend.title = element_blank(),
-        legend.key.size = unit(5, 'lines'),
+        legend.key.size = unit(8, 'lines'),
         legend.box = "vertical",
         legend.spacing.y = unit(0, "lines"),
         strip.text.y = element_blank(),
-        strip.background = element_rect(colour="white", size = 0.8))
+        strip.background = element_rect(colour="white", size = 1.5))
 
-png("figures/BACI_sl_probs2.png", 30000/8, 27500/8, "px", res = 600/8)
+png("figures/BACI_sl_probs2.png", 30000/8, 28500/8, "px", res = 600/8)
 P
 dev.off()
 
@@ -182,7 +182,7 @@ H <- h1 +
         legend.key.size = unit(5, 'lines'),
         legend.box = "vertical",
         legend.spacing.y = unit(0, "lines"),
-        strip.background = element_rect(colour = "white", size = 0.8))
+        strip.background = element_rect(colour = "white", size = 1.5))
 
 png("figures/BACI_gl_red_slopes_new.png", 31000/8, 19000/8, "px", res = 600/8)
 H
@@ -218,7 +218,7 @@ Q <- q1 +
         legend.key.size = unit(5, 'lines'),
         legend.box = "vertical",
         legend.spacing.y = unit(0, "lines"),
-        strip.background = element_rect(colour = "white", size = 0.8))
+        strip.background = element_rect(colour = "white", size = 1.5))
 
 png("figures/BACI_gl_red_probs_2.png", 30000/8, 20000/8, "px", res = 600/8)
 Q
@@ -269,7 +269,7 @@ S <- s1 +
         legend.key.size = unit(5, 'lines'),
         legend.box = "vertical",
         legend.spacing.y = unit(0, "lines"),
-        strip.background = element_rect(colour = "white", size = 0.8))
+        strip.background = element_rect(colour = "white", size = 1.5))
 
 png("figures/BACI_nb_probs2.png", 30000/8, 14000/8, "px", res = 600/8)
 S

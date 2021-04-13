@@ -58,7 +58,7 @@ bs_coeff <- lapply(bs_coeff, anova.create.1)
 ## Make graphing data frame:
 gg_data_1 <- reshape2::melt(bs_coeff)
 gg_data_1 <- dcast(gg_data_1, Var1 + L1 ~ Var2, value.var = "value")
-levels(gg_data_1$Var1) <- c("CplRet", "ConvT", "NoFor", "UstRetT")
+levels(gg_data_1$Var1) <- c("Complete Retention", "Conventional", "No Forestry", "Understory Retention")
 gg_data_1$exp <- "Before"
 
 ## 4. Analyse similarity of treatments after -----------------------------------
@@ -93,7 +93,7 @@ ba_coeff <- lapply(ba_coeff, anova.create.2)
 ## Make graphing data frame and rename levels:
 gg_data_2 <- reshape2::melt(ba_coeff)
 gg_data_2 <- dcast(gg_data_2, Var1 + L1 ~ Var2, value.var = "value")
-levels(gg_data_2$Var1) <- c("ConvT", "UstRetT")
+levels(gg_data_2$Var1) <- c("Conventional", "Understory Retention")
 gg_data_2$exp <- "After"
 
 ## 5. Make a table and figure --------------------------------------------------
@@ -123,24 +123,25 @@ gg_data$L1 <- factor(gg_data$L1,
 colnames(gg_data)[4] <- "Std.Error"
 
 ## Adjust level order:
-gg_data$Var1 <- factor(gg_data$Var1, levels = c("NoFor","CplRet", "UstRetT","ConvT"))
+gg_data$Var1 <- factor(gg_data$Var1, levels = c("No Forestry", "Complete Retention", "Understory Retention", "Conventional"))
 gg_data$exp <- factor(gg_data$exp, levels = c("Before", "After"))
 
 ## Make graph:
 G1 <- ggplot(gg_data, aes(x = Var1, y = Estimate, color = Var1)) +
   geom_errorbar(aes(ymin = Estimate - 1.96*Std.Error, 
                     ymax = Estimate + 1.96*Std.Error),
-                size = 5, 
+                size = 6, 
                 width = 0) +
-  geom_point(size = 7, color = "black") +
+  geom_point(size = 8, color = "black") +
   facet_grid(L1 ~ exp, scales = "free", space = "free_x") +
   xlab("") + ylab("") +
   scale_colour_manual(values = c("grey", "#00AFBB", "#E7B800", "#FC4E07")) +
   theme_light(30) + 
   theme(legend.position = "none",
-        axis.text.x = element_text(angle = 60, hjust = 1, size = 35))
+        axis.text.x = element_text(angle = 45, hjust = 1, size = 35),
+        axis.text.y = element_text(size = 35))
 
-png("figures/forest_var_new.png", 4000/8, 18000/8, "px", res = 600/8)
+png("figures/forest_var_new.png", 4700/8, 19500/8, "px", res = 600/8)
 G1
 dev.off()
 
