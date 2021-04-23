@@ -97,7 +97,7 @@ g2 <- geom_errorbar(aes(ymin = X2.5., ymax = X97.5.),
                     # alpha = 0.8,
                     position = position_dodge(0.6))
 g3 <- geom_point(position = position_dodge(0.6), size = 7, colour = "black")
-g4 <- facet_nested(vars(cat), vars(ref, indicator), "free")
+g4 <- facet_nested(vars(cat), vars(ref, indicator), "free", scales = "free_y")
 G <- g1 +
   geom_hline(yintercept = 0, size = 2, color = "darkgrey") + 
   g2 + g4 + g3 +
@@ -135,11 +135,11 @@ p2 <- geom_errorbar(aes(ymin = ifelse(ecdf < 0.5, ecdf - 1, 0),
                      width = 0)
 P <- p1 +
   geom_hline(yintercept = 0, size = 2, color = "darkgrey") +
-  scale_y_continuous(breaks = c(-1, -0.5, 0, 0.5, 1),
-                     labels = c("1", ".5", "0", "", ""),
+  scale_y_continuous(breaks = c(-0.9, -0.5, 0, 0.5, 0.9),
+                     labels = c(".9", ".5", "0", "", ""),
                      sec.axis = dup_axis(
                        name = "Probability that the indicator is positive",
-                       labels = c("", "", "0", ".5", "1"))) +
+                       labels = c("", "", "0", ".5", ".9"))) +
   p2 + g4 +
   xlab("") + ylab("Probability that the indicator is negative") +
   coord_flip() +
@@ -203,11 +203,11 @@ q2a <- geom_errorbar(aes(ymin = ifelse(ecdf < 0.5, ecdf - 1, 0),
 q3 <- facet_nested(vars(group), vars(ref, indicator), "free", scales = "free_y")
 Q <- q1 +
   geom_hline(yintercept = 0, size = 2, color = "darkgrey") +
-  scale_y_continuous(breaks = c(-1, -0.5, 0, 0.5, 1),
-                     labels = c("1", ".5", "0", "", ""),
+  scale_y_continuous(breaks = c(-0.9, -0.5, 0, 0.5, 0.9),
+                     labels = c(".9", ".5", "0", "", ""),
                      sec.axis = dup_axis(
                        name = "Probability that the indicator is positive",
-                       labels = c("", "", "0", ".5", "1"))) +
+                       labels = c("", "", "0", ".5", ".9"))) +
   q2a + q3 +
   xlab("") + ylab("Probability that the indicator is negative") + 
   coord_flip() +
@@ -254,11 +254,11 @@ s2a <- geom_errorbar(aes(ymin = ifelse(ecdf < 0.5, ecdf - 1, 0),
 s3 <- facet_nested(vars(response), vars(ref, indicator), "free", scales = "free_y")
 S <- s1 +
   geom_hline(yintercept = 0, size = 2, color = "darkgrey") +
-  scale_y_continuous(breaks = c(-1, -0.5, 0, 0.5, 1),
-                     labels = c("1", ".5", "0", "", ""),
+  scale_y_continuous(breaks = c(-0.9, -0.5, 0, 0.5, 0.9),
+                     labels = c(".9", ".5", "0", "", ""),
                      sec.axis = dup_axis(
                        name = "Probability that the indicator is positive",
-                       labels = c("", "", "0", ".5", "1"))) +
+                       labels = c("", "", "0", ".5", ".9"))) +
   s2a + s3 +
   xlab("") + ylab("Probability that the indicator is negative") + 
   coord_flip() +
