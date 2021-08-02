@@ -23,10 +23,10 @@ require("ggh4x")
 
 bird_data <- read.csv("data/bird_data.csv")
 bpo <- read.csv("clean/bpo_double.csv")
-BACI_sl_NF <- read.csv("clean/BACI_sl_red_ref_NF.csv")
-BACI_sl_CR <- read.csv("clean/BACI_sl_red_ref_CR.csv")
-BACI_gl_NF <- read.csv("clean/BACI_gl_red_ref_NF.csv")
-BACI_gl_CR <- read.csv("clean/BACI_gl_red_ref_CR.csv")
+BACI_sl_NF <- read.csv("clean/BACI_sl_vis_ref_NF.csv")
+BACI_sl_CR <- read.csv("clean/BACI_sl_vis_ref_CR.csv")
+BACI_gl_NF <- read.csv("clean/BACI_gl_vis_ref_NF.csv")
+BACI_gl_CR <- read.csv("clean/BACI_gl_vis_ref_CR.csv")
 BACI_nb_NF <- read.csv("clean/BACI_nb_ref_NF.csv")
 BACI_nb_CR <- read.csv("clean/BACI_nb_ref_CR.csv")
 BACI_rs_NF <- read.csv("clean/BACI_rs_ref_NF.csv")
@@ -117,7 +117,7 @@ G <- g1 +
         strip.text.y = element_blank(),
         strip.background = element_rect(colour = "white", size = 1.5))
 
-png("figures/BACI_sl_red_slopes_new.png", 40000/8, 30000/8, "px", res = 600/8)
+png("figures/BACI_sl_vis_slopes_new.png", 40000/8, 30000/8, "px", res = 600/8)
 G
 dev.off()
 
@@ -153,7 +153,7 @@ P <- p1 +
         strip.text.y = element_blank(),
         strip.background = element_rect(colour="white", size = 1.5))
 
-png("figures/BACI_sl_probs2.png", 30000/8, 28500/8, "px", res = 600/8)
+png("figures/BACI_sl_probs2_vis.png", 30000/8, 28500/8, "px", res = 600/8)
 P
 dev.off()
 
@@ -184,7 +184,7 @@ H <- h1 +
         legend.spacing.y = unit(0, "lines"),
         strip.background = element_rect(colour = "white", size = 1.5))
 
-png("figures/BACI_gl_red_slopes_new.png", 31000/8, 19000/8, "px", res = 600/8)
+png("figures/BACI_gl_vis_slopes_new.png", 31000/8, 19000/8, "px", res = 600/8)
 H
 dev.off()
 
@@ -220,7 +220,7 @@ Q <- q1 +
         legend.spacing.y = unit(0, "lines"),
         strip.background = element_rect(colour = "white", size = 1.5))
 
-png("figures/BACI_gl_red_probs_2.png", 30000/8, 20000/8, "px", res = 600/8)
+png("figures/BACI_gl_vis_probs_2.png", 30000/8, 20000/8, "px", res = 600/8)
 Q
 dev.off()
 

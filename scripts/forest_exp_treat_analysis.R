@@ -58,7 +58,7 @@ bs_coeff <- lapply(bs_coeff, anova.create.1)
 ## Make graphing data frame:
 gg_data_1 <- reshape2::melt(bs_coeff)
 gg_data_1 <- dcast(gg_data_1, Var1 + L1 ~ Var2, value.var = "value")
-levels(gg_data_1$Var1) <- c("Complete retention", "Conventional", "No forestry", "Understory retention")
+levels(gg_data_1$Var1) <- c("Complete retention", "Conventional thinning", "No forestry", "Understory retention")
 gg_data_1$exp <- "Before"
 
 ## 4. Analyse similarity of treatments after -----------------------------------
@@ -93,7 +93,7 @@ ba_coeff <- lapply(ba_coeff, anova.create.2)
 ## Make graphing data frame and rename levels:
 gg_data_2 <- reshape2::melt(ba_coeff)
 gg_data_2 <- dcast(gg_data_2, Var1 + L1 ~ Var2, value.var = "value")
-levels(gg_data_2$Var1) <- c("Conventional", "Understory retention")
+levels(gg_data_2$Var1) <- c("Conventional thinning", "Understory retention")
 gg_data_2$exp <- "After"
 
 ## 5. Make a table and figure --------------------------------------------------
@@ -123,7 +123,7 @@ gg_data$L1 <- factor(gg_data$L1,
 colnames(gg_data)[4] <- "Std.Error"
 
 ## Adjust level order:
-gg_data$Var1 <- factor(gg_data$Var1, levels = c("No forestry", "Complete retention", "Understory retention", "Conventional"))
+gg_data$Var1 <- factor(gg_data$Var1, levels = c("No forestry", "Complete retention", "Understory retention", "Conventional thinning"))
 gg_data$exp <- factor(gg_data$exp, levels = c("Before", "After"))
 
 ## Make graph:
