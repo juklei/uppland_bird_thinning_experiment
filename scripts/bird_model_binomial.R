@@ -1,7 +1,11 @@
 ## model birds in a hierarchical model
+## TC is No forestry
+## C is Complete retention
+## URT is Understory retention thinning
+## T is conventional thinning
 ## 
 ## First edit: 20191201
-## Last edit: 20200520
+## Last edit: 20220204
 ##
 ## Author: Julian Klein
 
@@ -27,9 +31,6 @@ occ <- occ[!occ$plot %in% c("plot_30", "plot_118", "plot_120", "plot_121"), ]
 
 bpo <- read.csv("clean/bpo_double.csv")
 forest <- read.csv("clean/forest_experiment_data_JAGS.csv")
-
-# ## Combine söderlejde and halqved to one block:
-# levels(forest$block)[2] <- "soderlejde"
 
 bird_data <- read.csv("data/bird_data.csv")
 bird_data <- droplevels(bird_data[bird_data$short %in% bpo$species, ])
@@ -215,21 +216,6 @@ dev.off()
 
 ## 7. Extract informtion from posterior and create arrays ----------------------
 
-# ## Extract alpha and beta diversity and store for use in a seperate model:
-# zc_post1 <- parCodaSamples(cl = cl, model = "bpo_bin",
-#                            variable.names = c("alpha_d", "beta_d"), 
-#                            n.iter = samples,
-#                            thin = n.thin)
-# save(zc_post1, file = "temp/zc_post1.r")
-# load("temp/zc_post1.r")
-# zcp1 <- combine.mcmc(zc_post1, collapse.chains = TRUE) 
-# 
-# ## To calculate all the results and indicators,create an array with the format 
-# ## iteration*treatment(m)*experiment(n)*diversity(2): 
-# ## The dimensions follow the column names ordering of the output matrix.
-# ## The array is filled along the dimensions (e.g.: row, column, array, ...).
-# a_zcp1 <- array(as.vector(zcp1), dim = c(nrow(zcp1), 4, 2, 2))
-
 ## Extract the thinned MCMC chains for all species and intercepts:
 zc_post2 <- parCodaSamples(cl = cl, model = "bpo_bin",
                            variable.names = "a_pocc",
@@ -254,38 +240,6 @@ levels(forest$treatment)
 eval <- c(1, 2, 4); ref <- 3
 # eval <- c(2, 4); ref <- 1
 ## !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-# ## Calculate BACI indicators of alpha - and beta diversity: ------------------
-# BACI_out1 <- array(NA, dim = c(dim(a_zcp1)[c(1, 4)], length(eval), 3))
-# for(m in 1:length(eval)){
-#   BACI_out1[,,m,1] <- (a_zcp1[,eval[m],2,] - a_zcp1[,eval[m],1,]) -    
-#                       (a_zcp1[,ref,2,] - a_zcp1[,ref,1,])        ## BACI
-#   BACI_out1[,,m,2] <- abs(a_zcp1[,eval[m],2,] - a_zcp1[,eval[m],1,]) - 
-#                       abs(a_zcp1[,ref,2,] - a_zcp1[,ref,1,])     ## CI-ctrl
-#   BACI_out1[,,m,3] <- abs(a_zcp1[,eval[m],2,] - a_zcp1[,ref,2,]) -     
-#                       abs(a_zcp1[,eval[m],1,] - a_zcp1[,ref,1,]) ## CI_div
-# }
-# 
-# ## Keep track of the names:
-# dimnames(BACI_out1) <- list(NULL, 
-#                             c("alpha", "beta"), 
-#                             levels(forest$treatment)[eval], 
-#                             c("BACI", "CI_ctr", "CI_div"))
-# 
-# ## Calculate results:
-# BACI_div <- apply(BACI_out1, c(2, 3, 4), posterior_summary)
-# BACI_div <- dcast(melt(BACI_div), Var2 + Var3 + Var4 ~ Var1)
-# 
-# ## Add naming for figures later on:
-# BACI_div$ref <- paste0("ref_", levels(forest$treatment)[ref])
-# colnames(BACI_div)[1:3] <- c("div_ind", "treatment", "indicator")
-# 
-# ## Export BACI_div and adjust name according to the chosen reference
-# write.csv(BACI_div, 
-#           paste0("clean/BACI_div_ref_", 
-#                  ifelse(ref == 3, "control", "CR"), 
-#                  ".csv"),
-#           row.names = FALSE)
 
 ## Calculate differences in bird species occurrence between control and  -------
 ## treatments before the experiment:

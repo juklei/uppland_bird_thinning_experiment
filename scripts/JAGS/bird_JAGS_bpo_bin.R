@@ -1,7 +1,7 @@
 ## bird bpo model with a binomial process for detection
 ##
 ## First edit: 20191201
-## Last edit: 20210424
+## Last edit: 20220204
 ##
 ## Author: Julian Klein
 

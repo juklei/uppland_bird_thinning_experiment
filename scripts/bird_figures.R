@@ -6,7 +6,7 @@
 # instead of guilds.
 
 ## First edit: 20191028
-## Last edit:  20200515
+## Last edit:  20220204
 ##
 ## Author: Julian Klein
 
@@ -23,10 +23,10 @@ require("ggh4x")
 
 bird_data <- read.csv("data/bird_data.csv")
 bpo <- read.csv("clean/bpo_double.csv")
-BACI_sl_NF <- read.csv("clean/BACI_sl_vis_ref_NF.csv")
-BACI_sl_CR <- read.csv("clean/BACI_sl_vis_ref_CR.csv")
-BACI_gl_NF <- read.csv("clean/BACI_gl_vis_ref_NF.csv")
-BACI_gl_CR <- read.csv("clean/BACI_gl_vis_ref_CR.csv")
+BACI_sl_NF <- read.csv("clean/BACI_sl_ref_NF.csv")
+BACI_sl_CR <- read.csv("clean/BACI_sl_ref_CR.csv")
+BACI_gl_NF <- read.csv("clean/BACI_gl_ref_NF.csv")
+BACI_gl_CR <- read.csv("clean/BACI_gl_ref_CR.csv")
 BACI_nb_NF <- read.csv("clean/BACI_nb_ref_NF.csv")
 BACI_nb_CR <- read.csv("clean/BACI_nb_ref_CR.csv")
 BACI_rs_NF <- read.csv("clean/BACI_rs_ref_NF.csv")
@@ -117,7 +117,7 @@ G <- g1 +
         strip.text.y = element_blank(),
         strip.background = element_rect(colour = "white", size = 1.5))
 
-png("figures/BACI_sl_vis_slopes_new.png", 40000/8, 30000/8, "px", res = 600/8)
+png("figures/BACI_sl_slopes.png", 10000, 7000, "px", res = 150)
 G
 dev.off()
 
@@ -144,7 +144,7 @@ P <- p1 +
   xlab("") + ylab("Probability that the indicator is negative") +
   coord_flip() +
   scale_colour_manual(values = c("#E7B800", "#00AFBB", "#FC4E07")) +
-  theme_light(70) +
+  theme_light(56) +
   theme(legend.position = "top",
         legend.title = element_blank(),
         legend.key.size = unit(8, 'lines'),
@@ -153,7 +153,7 @@ P <- p1 +
         strip.text.y = element_blank(),
         strip.background = element_rect(colour="white", size = 1.5))
 
-png("figures/BACI_sl_probs2_vis.png", 30000/8, 28500/8, "px", res = 600/8)
+pdf("figures/fig3.pdf", 40, 35)
 P
 dev.off()
 
@@ -184,7 +184,7 @@ H <- h1 +
         legend.spacing.y = unit(0, "lines"),
         strip.background = element_rect(colour = "white", size = 1.5))
 
-png("figures/BACI_gl_vis_slopes_new.png", 31000/8, 19000/8, "px", res = 600/8)
+png("figures/BACI_gl_slopes.png", 7000, 5000, "px", res = 150)
 H
 dev.off()
 
@@ -196,10 +196,6 @@ q2a <- geom_errorbar(aes(ymin = ifelse(ecdf < 0.5, ecdf - 1, 0),
                      position = position_dodge(0.5),
                      size = 5,
                      width = 0)
-# q2b <- geom_errorbar(aes(ymin = BACI_gl$ecdf - 1, ymax = 0), 
-#                      position = position_dodge(0.5),
-#                      size = 5,                  
-#                      width = 0)
 q3 <- facet_nested(vars(group), vars(ref, indicator), "free", scales = "free_y")
 Q <- q1 +
   geom_hline(yintercept = 0, size = 2, color = "darkgrey") +
@@ -212,7 +208,7 @@ Q <- q1 +
   xlab("") + ylab("Probability that the indicator is negative") + 
   coord_flip() +
   scale_colour_manual(values = c("#E7B800", "#00AFBB", "#FC4E07")) +
-  theme_light(70) +
+  theme_light(54) +
   theme(legend.position = "top", 
         legend.title = element_blank(),
         legend.key.size = unit(5, 'lines'),
@@ -220,7 +216,7 @@ Q <- q1 +
         legend.spacing.y = unit(0, "lines"),
         strip.background = element_rect(colour = "white", size = 1.5))
 
-png("figures/BACI_gl_vis_probs_2.png", 30000/8, 20000/8, "px", res = 600/8)
+pdf("figures/fig2.pdf", 36, 25)
 Q
 dev.off()
 
@@ -263,7 +259,7 @@ S <- s1 +
   xlab("") + ylab("Probability that the indicator is negative") + 
   coord_flip() +
   scale_colour_manual(values = c("#E7B800", "#00AFBB", "#FC4E07")) +
-  theme_light(70) +
+  theme_light(55) +
   theme(legend.position = "top", 
         legend.title = element_blank(),
         legend.key.size = unit(5, 'lines'),
@@ -271,7 +267,7 @@ S <- s1 +
         legend.spacing.y = unit(0, "lines"),
         strip.background = element_rect(colour = "white", size = 1.5))
 
-png("figures/BACI_nb_probs2.png", 30000/8, 14000/8, "px", res = 600/8)
+pdf("figures/fig4.pdf", 38, 19)
 S
 dev.off()
 

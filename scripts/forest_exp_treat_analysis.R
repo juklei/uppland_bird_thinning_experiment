@@ -1,8 +1,8 @@
-## Compare forest strucures among treatments and T and URT after the
+## Compare forest structures among treatments and T and URT after the
 ## experiment
 ##
 ## First edit: 20200226
-## Last edit: 20200227
+## Last edit: 20220204
 ##
 ## Author: Julian Klein
 
@@ -136,12 +136,12 @@ G1 <- ggplot(gg_data, aes(x = Var1, y = Estimate, color = Var1)) +
   facet_grid(L1 ~ exp, scales = "free", space = "free_x") +
   xlab("") + ylab("") +
   scale_colour_manual(values = c("grey", "#00AFBB", "#E7B800", "#FC4E07")) +
-  theme_light(30) + 
+  theme_light(28) + 
   theme(legend.position = "none",
         axis.text.x = element_text(angle = 45, hjust = 1, size = 35),
-        axis.text.y = element_text(size = 35))
+        axis.text.y = element_text(size = 30))
 
-png("figures/forest_var_new.png", 4700/8, 19500/8, "px", res = 600/8)
+pdf("figures/fig5.pdf", 7, 30)
 G1
 dev.off()
 
